@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">Crawling</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="pager_downloading_title">Downloading</string>
+    <string name="action_add">Add</string>
+    <string name="empty_task_tip">No Active Task</string>
+    <plurals name="selection_title">
+        <item quantity="one">1 item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <plurals name="delete_task_tip">
+        <item quantity="one">Delete 1 task?\nUndone task will be cancelled.</item>
+        <item quantity="other">Delete %1$d tasks?\nAll undone tasks will be cancelled.</item>
+    </plurals>
+
+    <string name="pager_downloaded_title">Downloaded</string>
+
+    <string name="action_delete">Delete</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_start">Start</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_exit">Exit</string>
+
+    <string name="activity_settings_title">Settings</string>
+    <string name="action_reset">Reset</string>
+</resources>

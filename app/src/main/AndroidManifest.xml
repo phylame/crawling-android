@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="pw.phylame.crawling">
+
+    <application
+        android:name=".CrawlerApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme">
+        <activity
+            android:name=".CrawlerActivity"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/activity_settings_title"
+            android:parentActivityName=".CrawlerActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="pw.phylame.crawling.CrawlerActivity" />
+        </activity>
+
+        <service
+            android:name=".downloading.FetchService"
+            android:enabled="true"
+            android:exported="true" />
+
+    </application>
+
+</manifest>

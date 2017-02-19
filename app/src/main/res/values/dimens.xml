@@ -1,0 +1,12 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <dimen name="action_bar_height">48dp</dimen>
+    <dimen name="tab_bar_height">42dp</dimen>
+
+    <dimen name="fab_margin">0dp</dimen>
+    <dimen name="design_fab_size_normal" tools:override="true">45dp</dimen>
+
+    <dimen name="text_margin">16dp</dimen>
+</resources>
