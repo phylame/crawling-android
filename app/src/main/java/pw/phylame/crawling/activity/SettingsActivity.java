@@ -1,4 +1,4 @@
-package pw.phylame.crawling;
+package pw.phylame.crawling.activity;
 
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
@@ -6,6 +6,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import lombok.val;
+import pw.phylame.crawling.R;
 import pw.phylame.support.Views;
 
 public class SettingsActivity extends BaseActivity {

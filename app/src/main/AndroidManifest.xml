@@ -9,26 +9,33 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".CrawlerActivity"
+            android:name=".activity.CrawlerActivity"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
-            android:name=".SettingsActivity"
-            android:label="@string/activity_settings_title"
-            android:parentActivityName=".CrawlerActivity">
+            android:name=".activity.SettingsActivity"
+            android:parentActivityName=".activity.CrawlerActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="pw.phylame.crawling.CrawlerActivity" />
+                android:value="pw.phylame.crawling.activity.CrawlerActivity" />
+        </activity>
+        <activity
+            android:name=".activity.NewTaskActivity"
+            android:parentActivityName=".activity.CrawlerActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="pw.phylame.crawling.activity.CrawlerActivity" />
         </activity>
 
         <service
-            android:name=".downloading.FetchService"
+            android:name=".task.TaskService"
             android:enabled="true"
-            android:exported="true" />
+            android:exported="false" />
 
     </application>
 

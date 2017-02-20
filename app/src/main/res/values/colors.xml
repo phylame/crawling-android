@@ -2,11 +2,9 @@
 <resources>
     <color name="colorPrimary">#EFEFF0</color>
     <color name="colorPrimaryDark">#757575</color>
-    <color name="colorAccent">#222</color>
+    <color name="colorAccent">#39C5BB</color>
     <color name="colorBackground">#ECEDEF</color>
     <color name="colorForeground">#222</color>
     <color name="textColorPrimary">#222</color>
     <color name="textColorSecondary">#717676</color>
-
-    <color name="itemSelected">#e5413f3f</color>
 </resources>
