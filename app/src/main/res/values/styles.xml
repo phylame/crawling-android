@@ -15,7 +15,7 @@
 
     <style name="AppTheme" parent="BaseTheme" />
 
-    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.ActionBar">
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="toolbarStyle">@style/AppTheme.Toolbar</item>
     </style>
 
@@ -37,6 +37,7 @@
 
     <style name="AppTheme.TabLayout" parent="Widget.Design.TabLayout">
         <item name="tabTextAppearance">@style/tabTextAppearance</item>
+        <item name="tabIndicatorColor">#FFF</item>
     </style>
 
     <style name="titleTextAppearance" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">

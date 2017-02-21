@@ -358,16 +358,16 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         private int optionIconOf(Task task, boolean isSelection) {
             if (isSelection) {
                 return task.selected
-                        ? R.mipmap.ic_checked_checkbox
-                        : R.mipmap.ic_unchecked_checkbox;
+                        ? R.mipmap.ic_checked_checkbox_dark
+                        : R.mipmap.ic_unchecked_checkbox_dark;
             }
             switch (task.state) {
                 case Started:
-                    return R.mipmap.ic_pause;
+                    return R.mipmap.ic_pause_dark;
                 case Paused:
-                    return R.mipmap.ic_play;
+                    return R.mipmap.ic_play_dark;
                 default:
-                    return R.mipmap.ic_view_details;
+                    return R.mipmap.ic_view_details_dark;
             }
         }
 

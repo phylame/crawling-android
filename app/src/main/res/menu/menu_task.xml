@@ -4,7 +4,7 @@
 
     <item
         android:id="@+id/action_add"
-        android:icon="@mipmap/ic_new"
+        android:icon="@mipmap/ic_add_file"
         android:title="@string/action_add"
         app:showAsAction="ifRoom" />
     <item

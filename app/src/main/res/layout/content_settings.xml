@@ -44,7 +44,7 @@
                 android:textColor="@color/textColorPrimary"
                 android:textSize="17sp" />
 
-            <Switch
+            <android.support.v7.widget.SwitchCompat
                 android:id="@+id/switch1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -69,7 +69,7 @@
                 android:textColor="@color/textColorPrimary"
                 android:textSize="17sp" />
 
-            <Switch
+            <android.support.v7.widget.SwitchCompat
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical" />
@@ -96,7 +96,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                app:srcCompat="@mipmap/ic_forward" />
+                app:srcCompat="@mipmap/ic_forward_dark" />
         </LinearLayout>
     </LinearLayout>
 </android.support.v4.widget.NestedScrollView>
