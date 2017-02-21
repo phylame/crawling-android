@@ -70,11 +70,4 @@ interface ITaskManager {
      * @return {@literal true} if all tasks processed, otherwise {@literal false}
      */
     boolean startTasks(Collection<Task> tasks, boolean start);
-
-    /**
-     * Registers listener for task state changing.
-     *
-     * @param l the listener
-     */
-    void setTaskListener(TaskListener l);
 }

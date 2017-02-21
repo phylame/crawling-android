@@ -35,6 +35,7 @@ import java.util.Set;
 
 import lombok.val;
 import pw.phylame.crawling.R;
+import pw.phylame.support.RxBus;
 
 import static pw.phylame.support.Views.viewById;
 
@@ -68,6 +69,7 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
     @Override
     public void onStart() {
         super.onStart();
+        System.out.println(mTaskManager);
         if (mTaskManager == null) {
             val context = getContext();
             context.bindService(new Intent(context, TaskService.class), this, Context.BIND_AUTO_CREATE);
@@ -78,7 +80,7 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
     public void onPause() {
         super.onPause();
         if (mTaskManager != null) {
-            getContext().unbindService(this);
+//            getContext().unbindService(this);
         }
     }
 
@@ -163,12 +165,12 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         mTaskManager = (ITaskManager) service;
-        mTaskManager.setTaskListener(mAdapter);
+//        RxBus.getDefault().subscribe(TaskProgressEvent.class, System.out::println);
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        mTaskManager.setTaskListener(null);
         mTaskManager = null;
     }
 
@@ -297,7 +299,7 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         }
     }
 
-    private class TaskAdapter extends RecyclerView.Adapter<TaskHolder> implements TaskListener {
+    private class TaskAdapter extends RecyclerView.Adapter<TaskHolder> {
         private final LayoutInflater mInflater;
 
         TaskAdapter(TaskFragment fragment) {
@@ -369,35 +371,6 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
                 default:
                     return R.mipmap.ic_view_details_dark;
             }
-        }
-
-        @Override
-        public void onStart(Task task) {
-            val msg = Message.obtain();
-            msg.what = UIHandler.UPDATE_TASK;
-            msg.obj = task;
-            mHandler.sendMessage(msg);
-        }
-
-        @Override
-        public void onDone(Task task) {
-            val msg = Message.obtain();
-            msg.what = UIHandler.UPDATE_TASK;
-            msg.obj = task;
-            mHandler.sendMessage(msg);
-        }
-
-        @Override
-        public void onDelete(Task task, int position) {
-            notifyItemRemoved(position);
-        }
-
-        @Override
-        public void onChange(Task task) {
-            val msg = Message.obtain();
-            msg.what = UIHandler.UPDATE_TASK;
-            msg.obj = task;
-            mHandler.sendMessage(msg);
         }
     }
 

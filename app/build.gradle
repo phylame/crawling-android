@@ -26,6 +26,7 @@ android {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile "io.reactivex:rxandroid:$rxjava_version"
     compile "pw.phylame.util:commons:$commons_version"
     provided "org.projectlombok:lombok:$lombok_version"
     compile "com.android.support:design:$support_version"
