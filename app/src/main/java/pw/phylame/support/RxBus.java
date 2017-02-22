@@ -3,10 +3,12 @@ package pw.phylame.support;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import lombok.NonNull;
 import lombok.val;
 import pw.phylame.commons.value.Lazy;
 import rx.Observable;
 import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
@@ -49,7 +51,7 @@ public final class RxBus {
      *
      * @param event the event object
      */
-    public final void post(Object event) {
+    public final void post(@NonNull Object event) {
         mBus.onNext(event);
     }
 
@@ -58,11 +60,15 @@ public final class RxBus {
      *
      * @param event the event object
      */
-    public final void postSticky(Object event) {
+    public final void postSticky(@NonNull Object event) {
         synchronized (mStickyEventMap) {
             mStickyEventMap.put(event.getClass(), event);
             post(event);
         }
+    }
+
+    public final <T> Subscription subscribe(Class<T> eventType, Action1<T> action) {
+        return subscribe(eventType, false, action);
     }
 
     /**
@@ -80,25 +86,35 @@ public final class RxBus {
      *     }
      * </pre>
      *
-     * @param eventType the class of event type
-     * @param action    the action for event
-     * @param <T>       the type of event
+     * @param eventType       the class of event type
+     * @param runOnMainThread {@literal true} for run the action in Android main thread
+     * @param action          the action for event
+     * @param <T>             the type of event
      * @return the subscription for this action
      */
-    public final <T> Subscription subscribe(Class<T> eventType, Action1<T> action) {
-        return toObservable(eventType).subscribe(action);
+    public final <T> Subscription subscribe(Class<T> eventType, boolean runOnMainThread, Action1<T> action) {
+        val observable = toObservable(eventType);
+        if (runOnMainThread) {
+            observable.observeOn(AndroidSchedulers.mainThread());
+        }
+        return observable.subscribe(action);
     }
 
     /**
      * Likes {@code subscribe} but for sticky event.
      *
-     * @param eventType the class of event type
-     * @param action    the action for event
-     * @param <T>       the type of event
+     * @param eventType       the class of event type
+     * @param runOnMainThread {@literal true} for run the action in Android main thread
+     * @param action          the action for event
+     * @param <T>             the type of event
      * @return the subscription for this action
      */
-    public final <T> Subscription subscribeSticky(Class<T> eventType, Action1<T> action) {
-        return toObservableSticky(eventType).subscribe(action);
+    public final <T> Subscription subscribeSticky(Class<T> eventType, boolean runOnMainThread, Action1<T> action) {
+        val observable = toObservableSticky(eventType);
+        if (runOnMainThread) {
+            observable.observeOn(AndroidSchedulers.mainThread());
+        }
+        return observable.subscribe(action);
     }
 
     /**

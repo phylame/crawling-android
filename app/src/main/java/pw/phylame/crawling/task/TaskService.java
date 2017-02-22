@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 import android.util.Pair;
 
 import java.util.Collection;
@@ -13,14 +14,22 @@ import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
 
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
+import pw.phylame.commons.function.Functionals;
 import pw.phylame.commons.value.Lazy;
 import pw.phylame.crawling.R;
 import pw.phylame.support.RxBus;
 
 public class TaskService extends Service {
+    /**
+     * The global event bus.
+     */
+    private static final RxBus sBus = RxBus.getDefault();
+
     private final TaskManagerBinder mBinder = new TaskManagerBinder();
 
     private final Lazy<ExecutorService> mExecutor = new Lazy<ExecutorService>(() -> {
@@ -48,6 +57,7 @@ public class TaskService extends Service {
 
     private class TaskManagerBinder extends Binder implements ITaskManager {
         private final List<TaskWrapper> mTasks = new Vector<>();
+        private final ReentrantLock mLock = new ReentrantLock();
 
         @Override
         public int getCount() {
@@ -59,13 +69,11 @@ public class TaskService extends Service {
             return mTasks.get(index).mTask;
         }
 
-        private Pair<TaskWrapper, Integer> wrapperFor(Task task) {
-            if (task == null) {
-                return null;
-            }
+        private Pair<TaskWrapper, Integer> findWrapper(Task task) {
+            val tasks = mTasks;
             TaskWrapper wrapper;
-            for (int i = 0, end = mTasks.size(); i < end; ++i) {
-                wrapper = mTasks.get(i);
+            for (int i = 0, end = tasks.size(); i < end; ++i) {
+                wrapper = tasks.get(i);
                 if (wrapper.mTask == task) {
                     return Pair.create(wrapper, i);
                 }
@@ -74,7 +82,11 @@ public class TaskService extends Service {
         }
 
         private boolean contains(Task task) {
-            return wrapperFor(task) != null;
+            return findWrapper(task) != null;
+        }
+
+        private void removeDirectly(int position) {
+            mTasks.remove(position);
         }
 
         @Override
@@ -83,107 +95,164 @@ public class TaskService extends Service {
         }
 
         @Override
-        public boolean submitTask(@NonNull Task task) {
+        public void submitTask(@NonNull Task task) {
             if (contains(task)) {
-                return false;
+                return;
             }
-            val wrapper = new TaskWrapper(task);
-            wrapper.mPosition = mTasks.size();
-            wrapper.mService = TaskService.this;
-            wrapper.mFuture = mExecutor.get().submit(wrapper);
-            mTasks.add(wrapper);
-            return true;
+            mLock.lock();
+            val tasks = this.mTasks;
+            try {
+                val wrapper = new TaskWrapper(task, this);
+                wrapper.mPosition = tasks.size() - 1;
+                wrapper.mFuture = mExecutor.get().submit(wrapper);
+                tasks.add(wrapper);
+
+                sBus.post(TaskEvent.builder()
+                        .type(TaskEvent.EVENT_SUBMIT)
+                        .arg1(wrapper.mPosition)
+                        .obj(task)
+                        .build());
+            } finally {
+                mLock.unlock();
+            }
         }
 
         @Override
-        public boolean startTask(@NonNull Task task, boolean start) {
-            val pair = wrapperFor(task);
+        public void startTask(@NonNull Task task, boolean start) {
+            val pair = findWrapper(task);
             if (pair == null) {
-                return false;
+                throw new IllegalArgumentException("No such task " + task);
             }
-            task.state = start ? Task.State.Started : Task.State.Paused;
-            // TODO: 2017-2-21 post event to bus
-            return true;
+            mLock.lock();
+            try {
+                task.state = start ? Task.State.Started : Task.State.Paused;
+
+                sBus.post(TaskEvent.builder()
+                        .type(TaskEvent.EVENT_LIFECYCLE)
+                        .arg1(pair.first.mPosition)
+                        .obj(task)
+                        .build());
+            } finally {
+                mLock.unlock();
+            }
         }
 
         @Override
-        public boolean startTasks(@NonNull Collection<Task> tasks, boolean start) {
-            if (tasks.isEmpty()) {
-                return true;
+        public void startTasks(@NonNull Collection<Task> tasks, boolean start) {
+            mLock.lock();
+            try {
+                Functionals.foreach(tasks.iterator(), task -> startTask(task, start));
+            } finally {
+                mLock.unlock();
             }
-            boolean result = true;
-            for (val task : tasks) {
-                if (!startTask(task, start)) {
-                    result = false;
-                }
-            }
-            return result;
         }
 
         @Override
-        public boolean deleteTask(@NonNull Task task) {
-            val pair = wrapperFor(task);
+        public void deleteTask(@NonNull Task task) {
+            val pair = findWrapper(task);
             if (pair == null) {
-                return false;
+                throw new IllegalArgumentException("No such task " + task);
             }
-            val wrapper = pair.first;
-            if (!wrapper.mFuture.isDone() && !wrapper.mFuture.isCancelled() && !wrapper.mFuture.cancel(true)) { // failed to cancel
-                return false;
+            mLock.lock();
+            val tasks = this.mTasks;
+            try {
+                val wrapper = pair.first;
+                // try cancel undone and uncanceled task
+                if (!wrapper.cancelIfNeed()) {
+                    return;
+                }
+                int position = pair.second;
+                tasks.remove(position);
+                for (int i = position + 1, end = tasks.size(); i < end; ++i) {
+                    --tasks.get(i).mPosition; // increase position of following tasks
+                }
+
+                sBus.post(TaskEvent.builder()
+                        .type(TaskEvent.EVENT_DELETE)
+                        .arg1(position)
+                        .obj(task)
+                        .build());
+            } finally {
+                mLock.unlock();
             }
-            mTasks.remove((int) pair.second);
-            // TODO: 2017-2-21 post event to bus
-            return true;
         }
 
         @Override
-        public boolean deleteTasks(@NonNull Collection<Task> tasks) {
-            if (tasks.isEmpty()) {
-                return true;
+        public void deleteTasks(@NonNull Collection<Task> tasks) {
+            mLock.lock();
+            try {
+                Functionals.foreach(tasks.iterator(), this::deleteTask);
+            } finally {
+                mLock.unlock();
             }
-            boolean result = true;
-            for (val task : tasks) {
-                if (!deleteTask(task)) {
-                    result = false;
-                }
-            }
-            return result;
         }
     }
 
+    @RequiredArgsConstructor
     private static class TaskWrapper implements Runnable {
-        private int mPosition;
-        private final Task mTask;
-        private Future<?> mFuture;
-        private TaskService mService;
+        private static final String TAG = TaskWrapper.class.getSimpleName();
 
-        TaskWrapper(Task task) {
-            mTask = task;
+        private final Task mTask;
+        private final TaskManagerBinder mTaskManager;
+
+        private int mPosition;
+        private Future<?> mFuture;
+
+        boolean cancelIfNeed() {
+            return mFuture.isDone() || mFuture.isCancelled() || mFuture.cancel(true);
         }
 
         private static final Random RANDOM = new Random();
 
         @Override
         public void run() {
-            mTask.state = Task.State.Started;
-            // TODO: 2017-2-21 post event to bus
-            for (int i = 1, end = mTask.total + 1; i != end; ++i) {
-                while (mTask.state == Task.State.Paused) {
+            val task = this.mTask;
+            task.state = Task.State.Started;
+
+            // reused event object
+            val event = TaskEvent.builder()
+                    .type(TaskEvent.EVENT_LIFECYCLE)
+                    .arg1(mPosition)
+                    .obj(task)
+                    .build();
+            sBus.post(event);
+
+            for (int i = 1, end = task.total + 1; i != end; ++i) {
+                while (task.state == Task.State.Paused) { // task is paused
+                    // TODO: 2017-2-22 cache task and finish for releasing thread
                     Thread.yield();
                 }
                 try {
                     Thread.sleep(RANDOM.nextInt(100));
-                    mTask.progress = i;
-                    RxBus.getDefault().post(new TaskProgressEvent(i, mTask.total));
-                } catch (InterruptedException e) {
-                    System.out.println("cancel task " + mTask);
-                    mTask.state = Task.State.Stopped;
+                    // TODO: 2017-2-22 fetching task
+
+                    task.progress = i;
+                    event.setType(TaskEvent.EVENT_PROGRESS);
+                    event.setArg2(task.total);
+                    event.setArg1(i);
+                    sBus.post(event);
+                } catch (InterruptedException e) { // task is cancelled
+                    Log.d(TAG, "task is cancelled");
+                    cleanup();
+
+                    task.state = Task.State.Stopped;
+                    event.setType(TaskEvent.EVENT_CANCELLED);
+                    event.setArg1(mPosition);
+                    event.setObj(task);
+                    sBus.post(event);
                     return;
                 }
             }
-            val position = mService.mBinder.mTasks.indexOf(this);
-            mService.mBinder.mTasks.remove(position);
-            mTask.state = Task.State.Finished;
-            // TODO: 2017-2-21 post event to bus
+            mTaskManager.removeDirectly(mPosition); // remove from task list
+            task.state = Task.State.Finished;
+            event.setType(TaskEvent.EVENT_LIFECYCLE);
+            event.setArg1(mPosition);
+            event.setObj(task);
+            sBus.post(event);
+        }
+
+        private void cleanup() {
+            // TODO: 2017-2-22 cleanup when task is cancelled
         }
     }
 }
