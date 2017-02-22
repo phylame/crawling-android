@@ -16,6 +16,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -34,17 +35,22 @@ import java.util.Random;
 import java.util.Set;
 
 import lombok.val;
+import pw.phylame.commons.util.Validate;
 import pw.phylame.crawling.R;
 import pw.phylame.support.RxBus;
+import rx.Subscription;
 
 import static pw.phylame.support.Views.viewById;
 
 public class TaskFragment extends Fragment implements ActionMode.Callback, ServiceConnection {
+    private static final RxBus sBus = RxBus.getDefault();
+
     private View mPlaceholder;
-    private UIHandler mHandler;
+    private InnerHandler mHandler;
     private TaskAdapter mAdapter;
     private ActionMode mActionMode;
     private ITaskManager mTaskManager;
+    private Subscription mSubscription;
 
     public TaskFragment() {
     }
@@ -62,26 +68,43 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mHandler = new InnerHandler(this);
         setHasOptionsMenu(true);
-        mHandler = new UIHandler(this);
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        System.out.println(mTaskManager);
-        if (mTaskManager == null) {
-            val context = getContext();
-            context.bindService(new Intent(context, TaskService.class), this, Context.BIND_AUTO_CREATE);
+        System.out.println("TaskFragment.onStart");
+        val context = getContext();
+        val intent = new Intent(context, TaskService.class);
+        context.startService(intent);
+        // TODO: 2017-2-22 stop service when app exit
+        context.bindService(intent, this, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mTaskManager != null) {
+            initTaskManager();
         }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (mTaskManager != null) {
-//            getContext().unbindService(this);
+        if (!mSubscription.isUnsubscribed()) {
+            mSubscription.unsubscribe();
         }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        System.out.println("TaskFragment.onStop");
+        mTaskManager = null;
+        getContext().unbindService(this);
     }
 
     @Override
@@ -164,52 +187,75 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
-        mTaskManager = (ITaskManager) service;
-//        RxBus.getDefault().subscribe(TaskProgressEvent.class, System.out::println);
-        mAdapter.notifyDataSetChanged();
+        if (service instanceof ITaskManager) {
+            mTaskManager = (ITaskManager) service;
+            initTaskManager();
+        }
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        mTaskManager = null;
+        Log.d("TaskFragment", "lost connection to service " + name);
     }
 
     private static final Random RANDOM = new Random();
 
+    private void ensureTaskServiceBound() {
+        Validate.requireNotNull(mTaskManager, "bind to task service first");
+    }
+
+    private void initTaskManager() {
+        System.out.println("TaskFragment.initTaskManager");
+        mSubscription = sBus.subscribe(TaskEvent.class, true, e -> {
+            System.out.println(e);
+            switch (e.getType()) {
+                case TaskEvent.EVENT_PROGRESS: {
+                    mAdapter.notifyItemChanged(e.getArg1());
+                }
+                break;
+                case TaskEvent.EVENT_SUBMIT: {
+                    System.out.println("submit: " + e.getArg1());
+                    mAdapter.notifyItemInserted(e.getArg1());
+                }
+                break;
+                case TaskEvent.EVENT_LIFECYCLE: {
+                    System.out.println("lifecycle: " + e.getArg1());
+                    val task = (Task) e.getObj();
+                    if (task.state == Task.State.Finished) {
+                        mAdapter.notifyItemRemoved(e.getArg1());
+                    } else {
+                        mAdapter.notifyItemChanged(e.getArg1());
+                    }
+                }
+                break;
+            }
+        });
+        mAdapter.notifyDataSetChanged();
+    }
+
     private void newTask() {
+        ensureTaskServiceBound();
         val task = mTaskManager.newTask();
         // TODO: 2017/2/20 init the task
         task.name = "New Task " + (mTaskManager.getCount() + 1);
         task.total = RANDOM.nextInt(491) + 10;
-
-        if (mTaskManager.submitTask(task)) {
-            mPlaceholder.setVisibility(View.GONE);
-            mAdapter.notifyItemInserted(mAdapter.getItemCount() - 1);
-        }
+        mTaskManager.submitTask(task);
     }
 
     private void startTasks(Collection<Task> tasks, boolean start) {
+        ensureTaskServiceBound();
         mTaskManager.startTasks(tasks, start);
     }
 
-    private void deleteTasks(final Collection<Task> tasks) {
+    private void deleteTasks(Collection<Task> tasks) {
+        ensureTaskServiceBound();
         val size = tasks.size();
         if (size == 0) {
             return;
         }
         new AlertDialog.Builder(getContext())
                 .setMessage(getResources().getQuantityString(R.plurals.delete_task_tip, size, size))
-                .setPositiveButton(R.string.ok, (dialog, which) -> {
-                    if (mTaskManager.deleteTasks(tasks)) {
-                        mSelections.clear();
-                        updateSelection();
-                        mAdapter.notifyDataSetChanged();
-                        if (mTaskManager.getCount() == 0) {
-                            mActionMode.finish();
-                            mPlaceholder.setVisibility(View.VISIBLE);
-                        }
-                    }
-                })
+                .setPositiveButton(R.string.ok, (dialog, which) -> mTaskManager.deleteTasks(tasks))
                 .setNegativeButton(R.string.cancel, null)
                 .create()
                 .show();
@@ -255,11 +301,14 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         if (!isInSelection()) {
             return;
         }
-        val selected = mSelections.size() != mTaskManager.getCount();
-        for (int i = 0, end = mTaskManager.getCount(); i < end; i++) {
-            mTaskManager.getTask(i).selected = selected;
+        val taskManager = this.mTaskManager;
+        val selected = mSelections.size() != taskManager.getCount();
+        Task task;
+        for (int i = 0, end = taskManager.getCount(); i < end; i++) {
+            task = taskManager.getTask(i);
+            task.selected = selected;
             if (selected) {
-                mSelections.add(mTaskManager.getTask(i));
+                mSelections.add(task);
             }
         }
         if (!selected) {
@@ -273,13 +322,13 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         // todo view details of task
     }
 
-    private static class UIHandler extends Handler {
+    private static class InnerHandler extends Handler {
         static final int UPDATE_TASK = 1;
 
         private final WeakReference<TaskFragment> mInvoker;
 
-        UIHandler(TaskFragment fragment) {
-            this.mInvoker = new WeakReference<TaskFragment>(fragment);
+        InnerHandler(TaskFragment fragment) {
+            this.mInvoker = new WeakReference<>(fragment);
         }
 
         @Override

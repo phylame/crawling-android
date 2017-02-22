@@ -7,6 +7,7 @@ import android.os.IBinder;
 import android.util.Log;
 import android.util.Pair;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
@@ -38,13 +39,13 @@ public class TaskService extends Service {
     });
 
     @Override
-    public void onCreate() {
-        super.onCreate();
+    public IBinder onBind(Intent intent) {
+        return mBinder;
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return mBinder;
+    public boolean onUnbind(Intent intent) {
+        return true;
     }
 
     @Override
@@ -56,7 +57,7 @@ public class TaskService extends Service {
     }
 
     private class TaskManagerBinder extends Binder implements ITaskManager {
-        private final List<TaskWrapper> mTasks = new Vector<>();
+        private final List<TaskWrapper> mTasks = new ArrayList<>();
         private final ReentrantLock mLock = new ReentrantLock();
 
         @Override
@@ -102,8 +103,9 @@ public class TaskService extends Service {
             mLock.lock();
             val tasks = this.mTasks;
             try {
+                System.out.println(sBus.hasObservers());
                 val wrapper = new TaskWrapper(task, this);
-                wrapper.mPosition = tasks.size() - 1;
+                wrapper.mPosition = tasks.size();
                 wrapper.mFuture = mExecutor.get().submit(wrapper);
                 tasks.add(wrapper);
 
@@ -227,15 +229,16 @@ public class TaskService extends Service {
                     // TODO: 2017-2-22 fetching task
 
                     task.progress = i;
+                    event.reset();
                     event.setType(TaskEvent.EVENT_PROGRESS);
-                    event.setArg2(task.total);
-                    event.setArg1(i);
+                    event.setArg1(mPosition);
                     sBus.post(event);
                 } catch (InterruptedException e) { // task is cancelled
                     Log.d(TAG, "task is cancelled");
                     cleanup();
 
                     task.state = Task.State.Stopped;
+                    event.reset();
                     event.setType(TaskEvent.EVENT_CANCELLED);
                     event.setArg1(mPosition);
                     event.setObj(task);
@@ -245,6 +248,7 @@ public class TaskService extends Service {
             }
             mTaskManager.removeDirectly(mPosition); // remove from task list
             task.state = Task.State.Finished;
+            event.reset();
             event.setType(TaskEvent.EVENT_LIFECYCLE);
             event.setArg1(mPosition);
             event.setObj(task);
