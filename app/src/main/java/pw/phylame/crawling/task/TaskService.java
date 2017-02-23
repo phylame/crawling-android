@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -19,6 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import lombok.val;
 import pw.phylame.commons.function.Functionals;
 import pw.phylame.commons.value.Lazy;
@@ -26,11 +26,6 @@ import pw.phylame.crawling.R;
 import pw.phylame.support.RxBus;
 
 public class TaskService extends Service {
-    /**
-     * The global event bus.
-     */
-    private static final RxBus sBus = RxBus.getDefault();
-
     private final TaskManagerBinder mBinder = new TaskManagerBinder();
 
     private final Lazy<ExecutorService> mExecutor = new Lazy<ExecutorService>(() -> {
@@ -41,6 +36,11 @@ public class TaskService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        super.onRebind(intent);
     }
 
     @Override
@@ -60,16 +60,6 @@ public class TaskService extends Service {
         private final List<TaskWrapper> mTasks = new ArrayList<>();
         private final ReentrantLock mLock = new ReentrantLock();
 
-        @Override
-        public int getCount() {
-            return mTasks.size();
-        }
-
-        @Override
-        public Task getTask(int index) {
-            return mTasks.get(index).mTask;
-        }
-
         private Pair<TaskWrapper, Integer> findWrapper(Task task) {
             val tasks = mTasks;
             TaskWrapper wrapper;
@@ -86,8 +76,38 @@ public class TaskService extends Service {
             return findWrapper(task) != null;
         }
 
+        private void submitDirectly(TaskWrapper wrapper) {
+            mLock.lock();
+            val tasks = this.mTasks;
+            try {
+                wrapper.mPosition = tasks.size();
+                tasks.add(wrapper);
+                RxBus.getDefault().post(TaskEvent.builder()
+                        .type(TaskEvent.EVENT_SUBMIT)
+                        .arg1(wrapper.mPosition)
+                        .obj(wrapper.mTask)
+                        .build());
+            } finally {
+                mLock.unlock();
+            }
+        }
+
         private void removeDirectly(int position) {
-            mTasks.remove(position);
+            mLock.lock();
+            val tasks = this.mTasks;
+            try {
+                val wrapper = tasks.remove(position);
+                for (int i = position, end = tasks.size(); i < end; ++i) {
+                    --tasks.get(i).mPosition; // decrease position of following tasks
+                }
+                RxBus.getDefault().post(TaskEvent.builder()
+                        .type(TaskEvent.EVENT_DELETE)
+                        .obj(wrapper.mTask)
+                        .arg1(position)
+                        .build());
+            } finally {
+                mLock.unlock();
+            }
         }
 
         @Override
@@ -103,17 +123,9 @@ public class TaskService extends Service {
             mLock.lock();
             val tasks = this.mTasks;
             try {
-                System.out.println(sBus.hasObservers());
                 val wrapper = new TaskWrapper(task, this);
-                wrapper.mPosition = tasks.size();
+                submitDirectly(wrapper);
                 wrapper.mFuture = mExecutor.get().submit(wrapper);
-                tasks.add(wrapper);
-
-                sBus.post(TaskEvent.builder()
-                        .type(TaskEvent.EVENT_SUBMIT)
-                        .arg1(wrapper.mPosition)
-                        .obj(task)
-                        .build());
             } finally {
                 mLock.unlock();
             }
@@ -128,8 +140,7 @@ public class TaskService extends Service {
             mLock.lock();
             try {
                 task.state = start ? Task.State.Started : Task.State.Paused;
-
-                sBus.post(TaskEvent.builder()
+                RxBus.getDefault().post(TaskEvent.builder()
                         .type(TaskEvent.EVENT_LIFECYCLE)
                         .arg1(pair.first.mPosition)
                         .obj(task)
@@ -163,17 +174,7 @@ public class TaskService extends Service {
                 if (!wrapper.cancelIfNeed()) {
                     return;
                 }
-                int position = pair.second;
-                tasks.remove(position);
-                for (int i = position + 1, end = tasks.size(); i < end; ++i) {
-                    --tasks.get(i).mPosition; // increase position of following tasks
-                }
-
-                sBus.post(TaskEvent.builder()
-                        .type(TaskEvent.EVENT_DELETE)
-                        .arg1(position)
-                        .obj(task)
-                        .build());
+                removeDirectly(pair.second);
             } finally {
                 mLock.unlock();
             }
@@ -190,6 +191,7 @@ public class TaskService extends Service {
         }
     }
 
+    @ToString
     @RequiredArgsConstructor
     private static class TaskWrapper implements Runnable {
         private static final String TAG = TaskWrapper.class.getSimpleName();
@@ -217,7 +219,7 @@ public class TaskService extends Service {
                     .arg1(mPosition)
                     .obj(task)
                     .build();
-            sBus.post(event);
+            RxBus.getDefault().post(event);
 
             for (int i = 1, end = task.total + 1; i != end; ++i) {
                 while (task.state == Task.State.Paused) { // task is paused
@@ -225,14 +227,16 @@ public class TaskService extends Service {
                     Thread.yield();
                 }
                 try {
-                    Thread.sleep(RANDOM.nextInt(100));
+                    Thread.sleep(RANDOM.nextInt(50));
                     // TODO: 2017-2-22 fetching task
 
                     task.progress = i;
                     event.reset();
                     event.setType(TaskEvent.EVENT_PROGRESS);
                     event.setArg1(mPosition);
-                    sBus.post(event);
+                    event.setObj(mTask);
+                    event.setArg2(i);
+                    RxBus.getDefault().post(event);
                 } catch (InterruptedException e) { // task is cancelled
                     Log.d(TAG, "task is cancelled");
                     cleanup();
@@ -242,17 +246,11 @@ public class TaskService extends Service {
                     event.setType(TaskEvent.EVENT_CANCELLED);
                     event.setArg1(mPosition);
                     event.setObj(task);
-                    sBus.post(event);
+                    RxBus.getDefault().post(event);
                     return;
                 }
             }
             mTaskManager.removeDirectly(mPosition); // remove from task list
-            task.state = Task.State.Finished;
-            event.reset();
-            event.setType(TaskEvent.EVENT_LIFECYCLE);
-            event.setArg1(mPosition);
-            event.setObj(task);
-            sBus.post(event);
         }
 
         private void cleanup() {

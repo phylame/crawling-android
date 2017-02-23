@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import lombok.val;
+import pw.phylame.commons.function.Functionals;
 
 public class CrawlerApp extends Application {
     private static CrawlerApp app;
@@ -31,8 +32,6 @@ public class CrawlerApp extends Application {
     }
 
     public void finish() {
-        for (val activity : activities) {
-            activity.finish();
-        }
+        Functionals.foreach(activities.iterator(), Activity::finish);
     }
 }

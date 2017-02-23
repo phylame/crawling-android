@@ -3,6 +3,7 @@ package pw.phylame.crawling.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -29,14 +30,12 @@ public class CrawlerActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_crawler);
         setSupportActionBar(viewById(this, R.id.toolbar));
-
-        ViewPager viewPager = viewById(this, R.id.pager);
-        viewPager.setAdapter(new FragmentAdapter(this, getSupportFragmentManager()));
-
-        TabLayout tabLayout = viewById(this, R.id.tab);
-        tabLayout.setupWithViewPager(viewPager);
-        tabLayout.addOnTabSelectedListener(new TabLayout.ViewPagerOnTabSelectedListener(viewPager));
-
+        findViewById(R.id.fab).setOnClickListener(view -> {
+            Snackbar.make(view, "Create New Task", Snackbar.LENGTH_SHORT).show();
+        });
+        findViewById(R.id.bottom_bar).setOnClickListener(view -> {
+            Activities.startActivity(this, HistoryActivity.class);
+        });
         mExitAction = new TimedAction(getResources().getInteger(R.integer.exit_check_millis));
     }
 
@@ -49,6 +48,11 @@ public class CrawlerActivity extends BaseActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.action_add:
+                Activities.startActivity(this, NewTaskActivity.class);
+                break;
+            case R.id.action_edit:
+                break;
             case R.id.action_settings:
                 Activities.startActivity(this, SettingsActivity.class);
                 break;
@@ -73,33 +77,5 @@ public class CrawlerActivity extends BaseActivity {
     private void exitApp() {
         CrawlerApp.sharedApp().finish();
         System.exit(0);
-    }
-
-    private static class FragmentAdapter extends FragmentPagerAdapter {
-        private final Context mContext;
-
-        FragmentAdapter(Context context, FragmentManager fm) {
-            super(fm);
-            mContext = context;
-        }
-
-        @Override
-        public int getCount() {
-            return 2;
-        }
-
-        @Override
-        public Fragment getItem(int position) {
-            return position == 0
-                    ? TaskFragment.newInstance()
-                    : HistoryFragment.newInstance();
-        }
-
-        @Override
-        public CharSequence getPageTitle(int position) {
-            return position == 0
-                    ? mContext.getString(R.string.pager_task_title)
-                    : mContext.getString(R.string.pager_history_title);
-        }
     }
 }

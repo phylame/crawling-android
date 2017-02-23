@@ -20,6 +20,4 @@ class Task {
      * Selection state.
      */
     boolean selected = false;
-
-    TaskFragment.TaskHolder mHolder;
 }

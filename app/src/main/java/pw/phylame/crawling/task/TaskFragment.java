@@ -5,14 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ActionMode;
-import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -28,9 +25,10 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -43,10 +41,9 @@ import rx.Subscription;
 import static pw.phylame.support.Views.viewById;
 
 public class TaskFragment extends Fragment implements ActionMode.Callback, ServiceConnection {
-    private static final RxBus sBus = RxBus.getDefault();
+    private static final String TAG = TaskFragment.class.getSimpleName();
 
     private View mPlaceholder;
-    private InnerHandler mHandler;
     private TaskAdapter mAdapter;
     private ActionMode mActionMode;
     private ITaskManager mTaskManager;
@@ -68,59 +65,54 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mHandler = new InnerHandler(this);
         setHasOptionsMenu(true);
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        System.out.println("TaskFragment.onStart");
         val context = getContext();
         val intent = new Intent(context, TaskService.class);
         context.startService(intent);
         // TODO: 2017-2-22 stop service when app exit
         context.bindService(intent, this, Context.BIND_AUTO_CREATE);
+        Log.d(TAG, "bind to task service");
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (mTaskManager != null) {
-            initTaskManager();
-        }
+        registerEvents();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (!mSubscription.isUnsubscribed()) {
-            mSubscription.unsubscribe();
-        }
+        unregisterEvents();
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        System.out.println("TaskFragment.onStop");
         mTaskManager = null;
         getContext().unbindService(this);
+        Log.d(TAG, "unbind from task service");
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        val view = inflater.inflate(R.layout.fragment_task, container, false);
+        val view = inflater.inflate(R.layout.content_task, container, false);
         mPlaceholder = view.findViewById(R.id.placeholder);
         initRecycler(view);
         return view;
     }
 
     private void initRecycler(View view) {
-        mAdapter = new TaskAdapter(this);
+        mAdapter = new TaskAdapter();
         RecyclerView recycler = viewById(view, R.id.recycler);
         recycler.setAdapter(mAdapter);
         recycler.setHasFixedSize(true);
-        recycler.setItemAnimator(new DefaultItemAnimator());
+        recycler.setItemAnimator(null);
         recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         recycler.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
     }
@@ -149,8 +141,8 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
     @Override
     public boolean onCreateActionMode(ActionMode mode, Menu menu) {
         mode.getMenuInflater().inflate(R.menu.menu_task_manage, menu);
-        mAdapter.notifyDataSetChanged(); // refresh selection state
         mSelections.clear();
+        mAdapter.notifyDataSetChanged(); // refresh selection state
         return true;
     }
 
@@ -188,57 +180,77 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         if (service instanceof ITaskManager) {
+            Log.d(TAG, "got connection to " + name + ", " + service);
             mTaskManager = (ITaskManager) service;
-            initTaskManager();
+            mAdapter.notifyDataSetChanged();
         }
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        Log.d("TaskFragment", "lost connection to service " + name);
+        Log.d(TAG, "lost connection to service " + name);
+        mTaskManager = null;
+        unregisterEvents();
     }
 
     private static final Random RANDOM = new Random();
 
-    private void ensureTaskServiceBound() {
-        Validate.requireNotNull(mTaskManager, "bind to task service first");
+    private void unregisterEvents() {
+        if (mSubscription != null && !mSubscription.isUnsubscribed()) {
+            Log.d(TAG, "unregister from rxbus");
+            mSubscription.unsubscribe();
+        }
+        mSubscription = null;
     }
 
-    private void initTaskManager() {
-        System.out.println("TaskFragment.initTaskManager");
-        mSubscription = sBus.subscribe(TaskEvent.class, true, e -> {
-            System.out.println(e);
-            switch (e.getType()) {
-                case TaskEvent.EVENT_PROGRESS: {
-                    mAdapter.notifyItemChanged(e.getArg1());
-                }
-                break;
-                case TaskEvent.EVENT_SUBMIT: {
-                    System.out.println("submit: " + e.getArg1());
-                    mAdapter.notifyItemInserted(e.getArg1());
-                }
-                break;
-                case TaskEvent.EVENT_LIFECYCLE: {
-                    System.out.println("lifecycle: " + e.getArg1());
-                    val task = (Task) e.getObj();
-                    if (task.state == Task.State.Finished) {
-                        mAdapter.notifyItemRemoved(e.getArg1());
-                    } else {
-                        mAdapter.notifyItemChanged(e.getArg1());
-                    }
-                }
-                break;
-            }
+    private void registerEvents() {
+        Validate.require(mSubscription == null, "Must unsubscribe firstly");
+        mSubscription = RxBus.getDefault().subscribe(TaskEvent.class, e -> {
+            getActivity().runOnUiThread(() -> {
+                handleEvent(e);
+            });
         });
-        mAdapter.notifyDataSetChanged();
+        Log.d(TAG, "register to rxbus");
+    }
+
+    private void handleEvent(TaskEvent e) {
+        val tasks = mAdapter.mTasks;
+        switch (e.getType()) {
+            case TaskEvent.EVENT_PROGRESS: {
+                mAdapter.notifyItemChanged(e.getArg1(), TaskEvent.EVENT_PROGRESS);
+            }
+            break;
+            case TaskEvent.EVENT_LIFECYCLE: {
+                mAdapter.notifyItemChanged(e.getArg1(), TaskEvent.EVENT_LIFECYCLE);
+            }
+            break;
+            case TaskEvent.EVENT_SUBMIT: {
+                tasks.add((Task) e.getObj());
+                mAdapter.notifyItemRangeInserted(e.getArg1(), 1);
+                mPlaceholder.setVisibility(View.GONE);
+            }
+            break;
+            case TaskEvent.EVENT_DELETE: {
+                tasks.remove(e.getArg1());
+                mAdapter.notifyItemRemoved(e.getArg1());
+                if (tasks.isEmpty()) {
+                    mPlaceholder.setVisibility(View.VISIBLE);
+                }
+            }
+            break;
+        }
+    }
+
+    private void ensureTaskServiceBound() {
+        Validate.requireNotNull(mTaskManager, "bind to task service first");
     }
 
     private void newTask() {
         ensureTaskServiceBound();
         val task = mTaskManager.newTask();
         // TODO: 2017/2/20 init the task
-        task.name = "New Task " + (mTaskManager.getCount() + 1);
-        task.total = RANDOM.nextInt(491) + 10;
+        task.name = "New Task " + (mAdapter.mTasks.size() + 1);
+        task.total = RANDOM.nextInt(191) + 10;
         mTaskManager.submitTask(task);
     }
 
@@ -301,11 +313,12 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         if (!isInSelection()) {
             return;
         }
+        val tasks = mAdapter.mTasks;
         val taskManager = this.mTaskManager;
-        val selected = mSelections.size() != taskManager.getCount();
+        val selected = mSelections.size() != tasks.size();
         Task task;
-        for (int i = 0, end = taskManager.getCount(); i < end; i++) {
-            task = taskManager.getTask(i);
+        for (int i = 0, end = tasks.size(); i < end; i++) {
+            task = tasks.get(i);
             task.selected = selected;
             if (selected) {
                 mSelections.add(task);
@@ -322,42 +335,17 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         // todo view details of task
     }
 
-    private static class InnerHandler extends Handler {
-        static final int UPDATE_TASK = 1;
-
-        private final WeakReference<TaskFragment> mInvoker;
-
-        InnerHandler(TaskFragment fragment) {
-            this.mInvoker = new WeakReference<>(fragment);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            val fragment = mInvoker.get();
-            switch (msg.what) {
-                case UPDATE_TASK: {
-                    val task = (Task) msg.obj;
-                    if (task.mHolder != null) {
-                        fragment.mAdapter.bindData(task, task.mHolder);
-                    }
-                }
-                break;
-                default:
-                    break;
-            }
-        }
-    }
-
     private class TaskAdapter extends RecyclerView.Adapter<TaskHolder> {
         private final LayoutInflater mInflater;
+        private final List<Task> mTasks = new ArrayList<>();
 
-        TaskAdapter(TaskFragment fragment) {
-            mInflater = LayoutInflater.from(fragment.getContext());
+        TaskAdapter() {
+            mInflater = LayoutInflater.from(TaskFragment.this.getContext());
         }
 
         @Override
         public int getItemCount() {
-            return mTaskManager == null ? 0 : mTaskManager.getCount();
+            return mTasks.size();
         }
 
         @Override
@@ -366,10 +354,49 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         }
 
         @Override
-        public void onBindViewHolder(final TaskHolder holder, int position) {
-            val task = mTaskManager.getTask(position);
-            bindData(task, holder);
-            task.mHolder = holder;
+        public void onBindViewHolder(TaskHolder holder, int position, List<Object> payloads) {
+            val task = mTasks.get(position);
+            if (payloads.isEmpty()) {
+                bindData(task, holder);
+            } else {
+                val o = payloads.get(0);
+                if (o instanceof Integer) {
+                    bindData(task, holder, (int) o);
+                }
+            }
+            setupListener(holder, task);
+        }
+
+        @Override
+        public void onBindViewHolder(TaskHolder holder, int position) {
+            // ignored by onBindViewHolder(holder, position, payloads)
+        }
+
+        private void bindData(Task task, TaskHolder holder) {
+            holder.icon.setImageResource(R.mipmap.ic_launcher);
+            holder.name.setText(task.name);
+            holder.progress.setMax(task.total);
+            holder.progress.setProgress(task.progress);
+            holder.info.setText(String.format("%d/%d", task.progress, task.total));
+            holder.option.setImageResource(optionIconOf(task, isInSelection()));
+        }
+
+        private void bindData(Task task, TaskHolder holder, int event) {
+            switch (event) {
+                case TaskEvent.EVENT_PROGRESS: {
+                    holder.progress.setProgress(task.progress);
+                    holder.info.setText(String.format("%d/%d", task.progress, task.total));
+                }
+                break;
+                case TaskEvent.EVENT_LIFECYCLE: {
+                    holder.option.setImageResource(optionIconOf(task, isInSelection()));
+                }
+                break;
+            }
+        }
+
+
+        private void setupListener(TaskHolder holder, Task task) {
             holder.itemView.setTag(task);
             holder.itemView.setOnClickListener(v -> {
                 val it = (Task) v.getTag();
@@ -395,15 +422,6 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
                 }
                 bindData(it, holder);
             });
-        }
-
-        private void bindData(Task task, TaskHolder holder) {
-            holder.icon.setImageResource(R.mipmap.ic_launcher);
-            holder.name.setText(task.name);
-            holder.progress.setMax(task.total);
-            holder.progress.setProgress(task.progress);
-            holder.info.setText(String.format("%d/%d", task.progress, task.total));
-            holder.option.setImageResource(optionIconOf(task, isInSelection()));
         }
 
         private int optionIconOf(Task task, boolean isSelection) {

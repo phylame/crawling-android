@@ -1,6 +1,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="pw.phylame.crawling.activity.CrawlerActivity">
+    <item
+        android:id="@+id/action_add"
+        android:icon="@mipmap/ic_add_file"
+        android:title="@string/action_add"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_edit"
+        android:icon="@mipmap/ic_edit_column"
+        android:title="@string/action_edit"
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"

@@ -9,6 +9,7 @@ import android.support.annotation.IdRes;
 import android.view.View;
 import android.widget.LinearLayout;
 
+import lombok.NonNull;
 import lombok.val;
 
 /**
@@ -19,18 +20,16 @@ public final class Views {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends View> T viewById(View parent, @IdRes int id) {
-        // lazied
+    public static <T extends View> T viewById(@NonNull View parent, @IdRes int id) {
         return (T) parent.findViewById(id);
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends View> T viewById(Activity activity, @IdRes int id) {
-        // lazied
+    public static <T extends View> T viewById(@NonNull Activity activity, @IdRes int id) {
         return (T) activity.findViewById(id);
     }
 
-    public static void showAnimated(View view, boolean shown) {
+    public static void showAnimated(@NonNull View view, boolean shown) {
         val animTime = view.getContext().getResources().getInteger(android.R.integer.config_shortAnimTime);
         view.setVisibility(shown ? View.VISIBLE : View.GONE);
         view.animate()

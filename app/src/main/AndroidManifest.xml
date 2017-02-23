@@ -37,6 +37,15 @@
             android:enabled="true"
             android:exported="false" />
 
+        <activity
+            android:name=".activity.HistoryActivity"
+            android:label="@string/title_activity_history"
+            android:parentActivityName=".activity.CrawlerActivity"
+            android:theme="@style/AppTheme">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="pw.phylame.crawling.activity.CrawlerActivity" />
+        </activity>
     </application>
 
 </manifest>

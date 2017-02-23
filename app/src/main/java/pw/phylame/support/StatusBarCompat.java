@@ -28,8 +28,7 @@ public final class StatusBarCompat {
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             val window = activity.getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            ((ViewGroup) window.getDecorView())
-                    .addView(Views.coloredView(activity, color, MATCH_PARENT, getStatusHeight(activity)));
+            ((ViewGroup) window.getDecorView()).addView(Views.coloredView(activity, color, MATCH_PARENT, getStatusHeight(activity)));
         } else {
             return false;
         }
@@ -49,12 +48,12 @@ public final class StatusBarCompat {
     public static boolean setMiuiStatusMode(Window window, boolean darker) {
         try {
             val layoutClass = Class.forName("android.view.MiuiWindowManager$LayoutParams");
-            val flag = Reflections.getFieldValue(layoutClass, "EXTRA_FLAG_STATUS_BAR_DARK_MODE");
+            val bits = Reflections.getFieldValue(layoutClass, "EXTRA_FLAG_STATUS_BAR_DARK_MODE");
             Reflections.Invocation.builder()
                     .name("setExtraFlags")
                     .target(window)
                     .types(new Class[]{int.class, int.class})
-                    .arguments(new Object[]{darker ? flag : 0, flag})
+                    .arguments(new Object[]{darker ? bits : 0, bits})
                     .build()
                     .invoke();
             return true;
@@ -67,14 +66,14 @@ public final class StatusBarCompat {
     public static boolean setFlymeStatusMode(Window window, boolean darker) {
         val attrs = window.getAttributes();
         try {
-            val flag = (Integer) Reflections.getFieldValue(WindowManager.LayoutParams.class, "MEIZU_FLAG_DARK_STATUS_BAR_ICON");
+            val bits = (Integer) Reflections.getFieldValue(WindowManager.LayoutParams.class, "MEIZU_FLAG_DARK_STATUS_BAR_ICON");
             val field = WindowManager.LayoutParams.class.getDeclaredField("meizuFlags");
             field.setAccessible(true);
             int flags = field.getInt(attrs);
             if (darker) {
-                flags |= flag;
+                flags |= bits;
             } else {
-                flags &= ~flag;
+                flags &= ~bits;
             }
             field.setInt(attrs, flags);
             window.setAttributes(attrs);

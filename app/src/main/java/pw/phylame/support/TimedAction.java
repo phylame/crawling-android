@@ -1,14 +1,13 @@
 package pw.phylame.support;
 
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 
+@RequiredArgsConstructor
 public class TimedAction {
-    private long mLastTime = 0;
     private final long mLimit;
 
-    public TimedAction(long millis) {
-        this.mLimit = millis;
-    }
+    private long mLastTime = 0;
 
     public boolean isEnable() {
         val now = System.currentTimeMillis();

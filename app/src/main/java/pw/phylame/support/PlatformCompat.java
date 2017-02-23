@@ -12,7 +12,10 @@ import pw.phylame.commons.io.IOUtils;
 import pw.phylame.commons.value.Lazy;
 
 public final class PlatformCompat {
-    private static final Lazy<Properties> buildProperties = new Lazy<>(() -> {
+    private PlatformCompat() {
+    }
+
+    private static final Lazy<Properties> sProp = new Lazy<>(() -> {
         val prop = new Properties();
         val in = new FileInputStream(new File(Environment.getRootDirectory(), "build.prop"));
         try {
@@ -24,7 +27,7 @@ public final class PlatformCompat {
     });
 
     public static boolean isMIUI() {
-        return buildProperties.get().containsKey("ro.miui.ui.version.name");
+        return sProp.get().containsKey("ro.miui.ui.version.name");
     }
 
     public static boolean isFlyme() {
@@ -36,6 +39,6 @@ public final class PlatformCompat {
     }
 
     public static boolean isEMUI() {
-        return buildProperties.get().containsKey("ro.build.version.emui");
+        return sProp.get().containsKey("ro.build.version.emui");
     }
 }

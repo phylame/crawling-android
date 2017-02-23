@@ -7,21 +7,6 @@ import java.util.Collection;
  */
 interface ITaskManager {
     /**
-     * Returns the number of tasks,
-     *
-     * @return number of task
-     */
-    int getCount();
-
-    /**
-     * Gets task with specified index.
-     *
-     * @param index the index of task
-     * @return the task
-     */
-    Task getTask(int index);
-
-    /**
      * Creates an new task.
      *
      * @return the task
