@@ -5,7 +5,7 @@ import java.util.Collection;
 /**
  * Interface provided task management.
  */
-interface ITaskManager {
+public interface ITaskManager {
     /**
      * Creates an new task.
      *

@@ -1,6 +1,6 @@
 package pw.phylame.crawling.task;
 
-class Task {
+public class Task {
     enum State {
         Started, Paused, Stopped, Finished, Failed
     }

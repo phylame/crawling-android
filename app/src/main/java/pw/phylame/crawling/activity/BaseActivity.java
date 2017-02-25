@@ -13,6 +13,8 @@ import pw.phylame.crawling.R;
 import pw.phylame.support.StatusBarCompat;
 
 public abstract class BaseActivity extends AppCompatActivity {
+    protected final String TAG = getClass().getSimpleName();
+
     @Override
     public void onCreate(Bundle savedInstanceState, PersistableBundle persistentState) {
         super.onCreate(savedInstanceState, persistentState);

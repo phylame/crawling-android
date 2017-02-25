@@ -39,16 +39,6 @@ public class TaskService extends Service {
     }
 
     @Override
-    public void onRebind(Intent intent) {
-        super.onRebind(intent);
-    }
-
-    @Override
-    public boolean onUnbind(Intent intent) {
-        return true;
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         if (mExecutor.isInitialized()) {

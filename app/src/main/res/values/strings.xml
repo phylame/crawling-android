@@ -35,4 +35,5 @@
 
     <string name="activity_new_task_title">New Task</string>
     <string name="title_activity_history">HistoryActivity</string>
+    <string name="view_history_hint">View Downloaded Books</string>
 </resources>

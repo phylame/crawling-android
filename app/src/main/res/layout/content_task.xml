@@ -35,7 +35,8 @@
         android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/action_bar_height"
-        android:background="#F8F8F8"
+        android:background="#FAFAFA"
+        android:foreground="?attr/selectableItemBackground"
         android:orientation="horizontal"
         android:padding="8dp">
 
@@ -44,9 +45,9 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
             android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:text="View More Histories"
-            android:textSize="18sp" />
+            android:text="@string/view_history_hint"
+            android:textColor="@color/textColorPrimary"
+            android:textSize="13sp" />
 
         <android.support.v7.widget.AppCompatImageView
             android:layout_width="wrap_content"

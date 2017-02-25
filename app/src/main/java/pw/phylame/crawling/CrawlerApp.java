@@ -6,18 +6,17 @@ import android.app.Application;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import lombok.val;
 import pw.phylame.commons.function.Functionals;
 
 public class CrawlerApp extends Application {
-    private static CrawlerApp app;
+    private static CrawlerApp sApp;
 
     public static CrawlerApp sharedApp() {
-        return app;
+        return sApp;
     }
 
     public CrawlerApp() {
-        app = this;
+        sApp = this;
     }
 
     @Override
