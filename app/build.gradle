@@ -26,7 +26,10 @@ android {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'pw.phylame.jem:jem-crawler:3.2.0'
+    compile('pw.phylame.jem:jem-crawler:3.2.0') {
+        exclude group: 'org.json', module: 'json'
+        exclude group: 'xpp3', module: 'xpp3'
+    }
     compile "io.reactivex:rxandroid:$rxjava_version"
     compile "pw.phylame.util:commons:$commons_version"
     provided "org.projectlombok:lombok:$lombok_version"

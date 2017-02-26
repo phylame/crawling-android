@@ -35,6 +35,7 @@ import java.util.Set;
 import lombok.val;
 import pw.phylame.commons.util.Validate;
 import pw.phylame.crawling.R;
+import pw.phylame.crawling.model.TaskEvent;
 import pw.phylame.support.RxBus;
 import rx.Subscription;
 

@@ -23,6 +23,7 @@ import lombok.val;
 import pw.phylame.commons.function.Functionals;
 import pw.phylame.commons.value.Lazy;
 import pw.phylame.crawling.R;
+import pw.phylame.crawling.model.TaskEvent;
 import pw.phylame.support.RxBus;
 
 public class TaskService extends Service {
