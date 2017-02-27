@@ -44,6 +44,16 @@
             android:layout_height="wrap_content">
 
             <android.support.v7.widget.AppCompatTextView
+                android:id="@+id/intro"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:text="intro text"
+                android:textSize="12sp" />
+
+            <android.support.v7.widget.AppCompatTextView
                 android:id="@+id/info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

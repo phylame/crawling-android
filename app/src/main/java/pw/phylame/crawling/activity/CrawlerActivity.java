@@ -5,15 +5,14 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.TypedArray;
+import android.graphics.BitmapFactory;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
+import android.media.ThumbnailUtils;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.res.ResourcesCompat;
-import android.support.v4.os.EnvironmentCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.view.ActionMode;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -48,16 +47,15 @@ import pw.phylame.commons.util.Validate;
 import pw.phylame.commons.value.Lazy;
 import pw.phylame.crawling.CrawlerApp;
 import pw.phylame.crawling.R;
+import pw.phylame.crawling.WorkerUtils;
 import pw.phylame.crawling.model.ITask;
 import pw.phylame.crawling.model.ITaskManager;
 import pw.phylame.crawling.model.TaskEvent;
 import pw.phylame.crawling.service.TaskService;
-import pw.phylame.crawling.task.Task;
 import pw.phylame.support.Activities;
 import pw.phylame.support.RxBus;
 import pw.phylame.support.TimedAction;
 import rx.Observable;
-import rx.Observer;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -178,21 +176,16 @@ public class CrawlerActivity extends BaseActivity {
 
     private void unregisterEvents() {
         if (mSubscription != null && !mSubscription.isUnsubscribed()) {
-            Log.d(TAG, "unregister from RxBus");
             mSubscription.unsubscribe();
         }
         mSubscription = null;
     }
 
     private void registerEvents() {
-        System.out.println("CrawlerActivity.registerEvents");
         Validate.require(mSubscription == null, "Must unsubscribe firstly");
-        mSubscription = RxBus.getDefault().subscribe(TaskEvent.class, e -> {
-            runOnUiThread(() -> {
-                handleEvent(e);
-            });
-        });
-        Log.d(TAG, "register to RxBus");
+        mSubscription = RxBus
+                .getDefault()
+                .subscribe(TaskEvent.class, e -> runOnUiThread(() -> handleEvent(e)));
     }
 
     private void handleEvent(TaskEvent e) {
@@ -218,6 +211,7 @@ public class CrawlerActivity extends BaseActivity {
             }
             break;
         }
+        e.recycle();
     }
 
     @Override
@@ -273,7 +267,7 @@ public class CrawlerActivity extends BaseActivity {
             if (granted) {
                 demoFetch();
             } else {
-                Toast.makeText(this, "cannot grant internet permission", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "cannot grant required permissions", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -299,7 +293,7 @@ public class CrawlerActivity extends BaseActivity {
                     val task = mTaskManager.newTask();
                     task.setBook(book);
                     task.setOutput(new File(Environment.getExternalStorageDirectory(), Attributes.getTitle(book) + ".pmab"));
-                    task.setFormat("pmab");
+                    task.setFormat(EpmManager.PMAB);
                     mTaskManager.submitTask(task);
                 }, Throwable::printStackTrace);
     }
@@ -310,20 +304,16 @@ public class CrawlerActivity extends BaseActivity {
     }
 
     private class TaskAdapter extends RecyclerView.Adapter<TaskHolder> {
-        private final Lazy<Drawable> mDefaultCover = new Lazy<>(() -> {
-            return ContextCompat.getDrawable(CrawlerActivity.this, R.mipmap.ic_launcher);
-        });
+        private final Lazy<Drawable> mDefaultCover = new Lazy<>(() -> ContextCompat.getDrawable(CrawlerActivity.this, R.mipmap.ic_launcher));
 
-        private final Lazy<Integer> mCoverHeight = new Lazy<Integer>(() -> {
+        private final Lazy<Integer> mCoverHeight = new Lazy<>(() -> {
             int[] attribute = new int[]{android.R.attr.listPreferredItemHeight};
             val typedValue = new TypedValue();
-            TypedArray array = CrawlerActivity.this.obtainStyledAttributes(typedValue.resourceId, attribute);
+            TypedArray array = obtainStyledAttributes(typedValue.resourceId, attribute);
             return array.getDimensionPixelSize(0, -1);
         });
 
-        private final Lazy<Integer> mCoverWidth = new Lazy<Integer>(() -> {
-            return (int) (mCoverHeight.get() * 0.75);
-        });
+        private final Lazy<Integer> mCoverWidth = new Lazy<>(() -> (int) (mCoverHeight.get() * 0.75));
 
         private final LayoutInflater mInflater;
         private final List<ITask> mTasks = new ArrayList<>();
@@ -377,10 +367,22 @@ public class CrawlerActivity extends BaseActivity {
 
         private void bindData(TaskHolder holder, ITask task) {
             if (task.cover != null) {
-
+                holder.icon.setImageDrawable(task.cover);
+            } else {
+                holder.icon.setImageDrawable(mDefaultCover.get());
+                val cover = Attributes.getCover(task.getBook());
+                WorkerUtils.execute(() -> {
+                    val bmp = BitmapFactory.decodeStream(cover.openStream());
+                    val m = ThumbnailUtils.extractThumbnail(bmp, mCoverWidth.get(), mCoverHeight.get());
+                    bmp.recycle();
+                    return m;
+                }, bmp -> {
+                    holder.icon.setImageBitmap(bmp);
+                    task.cover = holder.icon.getDrawable();
+                }, err -> Log.d(TAG, "cannot load cover:" + cover));
             }
-            holder.icon.setImageResource(R.mipmap.ic_launcher);
             holder.name.setText(task.getName());
+            holder.intro.setText(Attributes.getAuthor(task.getBook()));
             val total = task.getTotal();
             holder.progress.setMax(total);
             if (task.getState() == ITask.State.Finished) {
@@ -403,15 +405,13 @@ public class CrawlerActivity extends BaseActivity {
         }
 
         private void setOptionIcon(ImageView view, ITask task, boolean isSelection) {
-            view.setImageResource(optionIconOf(task, isInSelection()));
+            view.setImageResource(optionIconOf(task, isSelection));
             view.setColorFilter(ContextCompat.getColor(CrawlerActivity.this, R.color.colorForeground), PorterDuff.Mode.MULTIPLY);
         }
 
         private int optionIconOf(ITask task, boolean isSelection) {
             if (isSelection) {
-                return task.selected
-                        ? R.mipmap.ic_checked_checkbox
-                        : R.mipmap.ic_unchecked_checkbox;
+                return task.selected ? R.mipmap.ic_checked_checkbox : R.mipmap.ic_unchecked_checkbox;
             }
             switch (task.getState()) {
                 case Started:
@@ -430,6 +430,7 @@ public class CrawlerActivity extends BaseActivity {
         final ImageView icon;
         final ImageButton option;
         final ProgressBar progress;
+        final TextView intro;
         final TextView info;
 
         TaskHolder(View view) {
@@ -438,6 +439,7 @@ public class CrawlerActivity extends BaseActivity {
             name = viewById(view, R.id.name);
             option = viewById(view, R.id.option);
             progress = viewById(view, R.id.progressBar);
+            intro = viewById(view, R.id.intro);
             info = viewById(view, R.id.info);
         }
     }

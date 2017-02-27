@@ -51,7 +51,9 @@ public final class RxBus {
      * @param event the event object
      */
     public final void post(@NonNull Object event) {
-        mBus.onNext(event);
+        if (hasObservers()) {
+            mBus.onNext(event);
+        }
     }
 
     /**

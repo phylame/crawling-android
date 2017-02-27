@@ -10,23 +10,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import jem.Chapter;
-import jem.crawler.CrawlerBook;
 import jem.crawler.CrawlerListener;
 import jem.crawler.CrawlerListenerAdapter;
-import jem.crawler.CrawlerText;
 import jem.epm.EpmManager;
-import jem.epm.EpmOutParam;
 import jem.util.JemException;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
 import lombok.val;
 import pw.phylame.commons.value.Lazy;
 import pw.phylame.support.RxBus;
 
 class TaskWrapper extends ITask implements Runnable {
     private static final String TAG = TaskWrapper.class.getSimpleName();
-    static final Lazy<ExecutorService> sExecutor = new Lazy<>(() -> Executors.newFixedThreadPool(48));
+    private static final Lazy<ExecutorService> sExecutor = new Lazy<>(() -> Executors.newFixedThreadPool(48));
 
     State mState;
     int mPosition;
@@ -36,6 +30,19 @@ class TaskWrapper extends ITask implements Runnable {
     @Override
     public State getState() {
         return mState;
+    }
+
+    private void setState(State state) {
+        setState(state, null);
+    }
+
+    private void setState(State state, Object data) {
+        mState = state;
+        RxBus.getDefault().post(TaskEvent
+                .obtain()
+                .type(TaskEvent.EVENT_LIFECYCLE)
+                .arg1(mPosition)
+                .obj(data));
     }
 
     @Override
@@ -63,11 +70,7 @@ class TaskWrapper extends ITask implements Runnable {
         } else if (mState != ITask.State.Started) {
             throw new IllegalStateException("Task is not started: " + this);
         }
-        mState = ITask.State.Started;
-        RxBus.getDefault().post(TaskEvent.obtain()
-                .type(TaskEvent.EVENT_LIFECYCLE)
-                .arg1(mPosition)
-                .obj(this));
+        setState(ITask.State.Started);
     }
 
     void pause() {
@@ -77,48 +80,37 @@ class TaskWrapper extends ITask implements Runnable {
         } else if (mState != ITask.State.Paused) {
             throw new IllegalStateException("Task is not paused: " + this);
         }
-        mState = ITask.State.Paused;
-        RxBus.getDefault().post(TaskEvent.obtain()
-                .type(TaskEvent.EVENT_LIFECYCLE)
-                .arg1(mPosition)
-                .obj(this));
+        setState(ITask.State.Paused);
     }
 
     private CrawlerListener mListener = new CrawlerListenerAdapter() {
         @Override
-        public void textFetching(Chapter chapter, int total, int current) {
-            RxBus.getDefault().post(TaskEvent.obtain()
+        public void textFetched(Chapter chapter, int total, int current) {
+            RxBus.getDefault().post(TaskEvent
+                    .obtain()
                     .type(TaskEvent.EVENT_PROGRESS)
                     .arg1(mPosition)
-                    .arg2(current)
-                    .obj(this));
+                    .arg2(current));
         }
     };
 
     @Override
     public void run() {
-        mState = State.Started;
-        RxBus.getDefault().post(TaskEvent.obtain()
-                .type(TaskEvent.EVENT_LIFECYCLE)
-                .arg1(mPosition)
-                .obj(this));
-
+        setState(State.Started);
         val book = getBook();
         book.getContext().setListener(mListener);
         mFutures = book.initTexts(sExecutor.get(), false);
         try {
-            EpmManager.writeBook(getBook(), getOutput(), getFormat(), null);
-            mState = State.Finished;
-            RxBus.getDefault().post(TaskEvent.obtain()
-                    .type(TaskEvent.EVENT_LIFECYCLE)
-                    .arg1(mPosition)
-                    .obj(this));
+            book.awaitFetched();
+        } catch (InterruptedException e) {
+            setState(State.Cancelled);
+            return;
+        }
+        try {
+            EpmManager.writeBook(book, getOutput(), getFormat(), null);
+            setState(State.Finished);
         } catch (IOException | JemException e) {
-            mState = State.Failed;
-            RxBus.getDefault().post(TaskEvent.obtain()
-                    .type(TaskEvent.EVENT_ERROR)
-                    .arg1(mPosition)
-                    .obj(e));
+            setState(State.Failed, e);
         }
     }
 
@@ -133,4 +125,5 @@ class TaskWrapper extends ITask implements Runnable {
 
     private void cleanup() {
     }
+
 }

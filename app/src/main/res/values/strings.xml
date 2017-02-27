@@ -36,4 +36,8 @@
     <string name="activity_new_task_title">New Task</string>
     <string name="title_activity_history">HistoryActivity</string>
     <string name="view_history_hint">View Downloaded Books</string>
+    <string name="new_task_url">URL:</string>
+    <string name="new_task_url_hint">URL of book details</string>
+    <string name="new_task_format">Format</string>
+    <string name="new_task_output">Output</string>
 </resources>

@@ -206,7 +206,7 @@ public class TaskService extends Service {
 
             // reused event object
 //            val event = TaskEvent.builder()
-//                    .type(TaskEvent.EVENT_LIFECYCLE)
+//          ,          .type(TaskEvent.EVENT_LIFECYCLE)
 //                    .arg1(mPosition)
 //                    .obj(task)
 //                    .build();
