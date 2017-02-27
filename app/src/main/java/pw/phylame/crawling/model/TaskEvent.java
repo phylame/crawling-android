@@ -10,6 +10,7 @@ public class TaskEvent {
     public static final int EVENT_PROGRESS = 102;
     public static final int EVENT_CANCELLED = 103;
     public static final int EVENT_LIFECYCLE = 104;
+    public static final int EVENT_ERROR = 105;
 
     public int type;
     public int arg1;

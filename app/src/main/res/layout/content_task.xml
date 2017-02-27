@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".task.TaskFragment">
 
     <FrameLayout
@@ -15,10 +16,6 @@
             android:id="@+id/recycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingEnd="8dp"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
-            android:paddingStart="8dp"
             android:scrollbarStyle="outsideOverlay"
             android:scrollbars="vertical" />
 
@@ -35,8 +32,8 @@
         android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/action_bar_height"
-        android:background="#FAFAFA"
         android:foreground="?attr/selectableItemBackground"
+        android:background="#fcfcfc"
         android:orientation="horizontal"
         android:padding="8dp">
 
@@ -53,6 +50,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            app:srcCompat="@mipmap/ic_forward_dark" />
+            android:tint="@color/colorForeground"
+            app:srcCompat="@mipmap/ic_forward" />
     </LinearLayout>
 </LinearLayout>

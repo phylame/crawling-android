@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="pw.phylame.crawling">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
     <application
         android:name=".CrawlerApp"
         android:allowBackup="true"
@@ -31,12 +34,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="pw.phylame.crawling.activity.CrawlerActivity" />
         </activity>
-
-        <service
-            android:name=".task.TaskService"
-            android:enabled="true"
-            android:exported="false" />
-
         <activity
             android:name=".activity.HistoryActivity"
             android:label="@string/title_activity_history"
@@ -46,6 +43,10 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="pw.phylame.crawling.activity.CrawlerActivity" />
         </activity>
+
+        <service
+            android:name=".service.TaskService"
+            android:exported="false" />
     </application>
 
 </manifest>

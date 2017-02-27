@@ -7,6 +7,7 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ActionMode;
@@ -216,30 +217,30 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
 
     private void handleEvent(TaskEvent e) {
         val tasks = mAdapter.mTasks;
-        switch (e.getType()) {
-            case TaskEvent.EVENT_PROGRESS: {
-                mAdapter.notifyItemChanged(e.getArg1(), TaskEvent.EVENT_PROGRESS);
-            }
-            break;
-            case TaskEvent.EVENT_LIFECYCLE: {
-                mAdapter.notifyItemChanged(e.getArg1(), TaskEvent.EVENT_LIFECYCLE);
-            }
-            break;
-            case TaskEvent.EVENT_SUBMIT: {
-                tasks.add((Task) e.getObj());
-                mAdapter.notifyItemRangeInserted(e.getArg1(), 1);
-                mPlaceholder.setVisibility(View.GONE);
-            }
-            break;
-            case TaskEvent.EVENT_DELETE: {
-                tasks.remove(e.getArg1());
-                mAdapter.notifyItemRemoved(e.getArg1());
-                if (tasks.isEmpty()) {
-                    mPlaceholder.setVisibility(View.VISIBLE);
-                }
-            }
-            break;
-        }
+//        switch (e.getType()) {
+//            case TaskEvent.EVENT_PROGRESS: {
+//                mAdapter.notifyItemChanged(e.getArg1(), TaskEvent.EVENT_PROGRESS);
+//            }
+//            break;
+//            case TaskEvent.EVENT_LIFECYCLE: {
+//                mAdapter.notifyItemChanged(e.getArg1(), TaskEvent.EVENT_LIFECYCLE);
+//            }
+//            break;
+//            case TaskEvent.EVENT_SUBMIT: {
+//                tasks.add((Task) e.getObj());
+//                mAdapter.notifyItemRangeInserted(e.getArg1(), 1);
+//                mPlaceholder.setVisibility(View.GONE);
+//            }
+//            break;
+//            case TaskEvent.EVENT_DELETE: {
+//                tasks.remove(e.getArg1());
+//                mAdapter.notifyItemRemoved(e.getArg1());
+//                if (tasks.isEmpty()) {
+//                    mPlaceholder.setVisibility(View.VISIBLE);
+//                }
+//            }
+//            break;
+//        }
     }
 
     private void ensureTaskServiceBound() {
@@ -428,16 +429,16 @@ public class TaskFragment extends Fragment implements ActionMode.Callback, Servi
         private int optionIconOf(Task task, boolean isSelection) {
             if (isSelection) {
                 return task.selected
-                        ? R.mipmap.ic_checked_checkbox_dark
-                        : R.mipmap.ic_unchecked_checkbox_dark;
+                        ? R.mipmap.ic_checked_checkbox
+                        : R.mipmap.ic_unchecked_checkbox;
             }
             switch (task.state) {
                 case Started:
-                    return R.mipmap.ic_pause_dark;
+                    return R.mipmap.ic_pause;
                 case Paused:
-                    return R.mipmap.ic_play_dark;
+                    return R.mipmap.ic_play;
                 default:
-                    return R.mipmap.ic_view_details_dark;
+                    return R.mipmap.ic_view_details;
             }
         }
     }

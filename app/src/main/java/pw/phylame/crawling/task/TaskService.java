@@ -73,11 +73,11 @@ public class TaskService extends Service {
             try {
                 wrapper.mPosition = tasks.size();
                 tasks.add(wrapper);
-                RxBus.getDefault().post(TaskEvent.builder()
-                        .type(TaskEvent.EVENT_SUBMIT)
-                        .arg1(wrapper.mPosition)
-                        .obj(wrapper.mTask)
-                        .build());
+//                RxBus.getDefault().post(TaskEvent.builder()
+//                        .type(TaskEvent.EVENT_SUBMIT)
+//                        .arg1(wrapper.mPosition)
+//                        .obj(wrapper.mTask)
+//                        .build());
             } finally {
                 mLock.unlock();
             }
@@ -91,11 +91,11 @@ public class TaskService extends Service {
                 for (int i = position, end = tasks.size(); i < end; ++i) {
                     --tasks.get(i).mPosition; // decrease position of following tasks
                 }
-                RxBus.getDefault().post(TaskEvent.builder()
-                        .type(TaskEvent.EVENT_DELETE)
-                        .obj(wrapper.mTask)
-                        .arg1(position)
-                        .build());
+//                RxBus.getDefault().post(TaskEvent.builder()
+//                        .type(TaskEvent.EVENT_DELETE)
+//                        .obj(wrapper.mTask)
+//                        .arg1(position)
+//                        .build());
             } finally {
                 mLock.unlock();
             }
@@ -131,11 +131,11 @@ public class TaskService extends Service {
             mLock.lock();
             try {
                 task.state = start ? Task.State.Started : Task.State.Paused;
-                RxBus.getDefault().post(TaskEvent.builder()
-                        .type(TaskEvent.EVENT_LIFECYCLE)
-                        .arg1(pair.first.mPosition)
-                        .obj(task)
-                        .build());
+//                RxBus.getDefault().post(TaskEvent.builder()
+//                        .type(TaskEvent.EVENT_LIFECYCLE)
+//                        .arg1(pair.first.mPosition)
+//                        .obj(task)
+//                        .build());
             } finally {
                 mLock.unlock();
             }
@@ -205,12 +205,12 @@ public class TaskService extends Service {
             task.state = Task.State.Started;
 
             // reused event object
-            val event = TaskEvent.builder()
-                    .type(TaskEvent.EVENT_LIFECYCLE)
-                    .arg1(mPosition)
-                    .obj(task)
-                    .build();
-            RxBus.getDefault().post(event);
+//            val event = TaskEvent.builder()
+//                    .type(TaskEvent.EVENT_LIFECYCLE)
+//                    .arg1(mPosition)
+//                    .obj(task)
+//                    .build();
+//            RxBus.getDefault().post(event);
 
             for (int i = 1, end = task.total + 1; i != end; ++i) {
                 while (task.state == Task.State.Paused) { // task is paused
@@ -222,22 +222,22 @@ public class TaskService extends Service {
                     // TODO: 2017-2-22 fetching task
 
                     task.progress = i;
-                    event.reset();
-                    event.setType(TaskEvent.EVENT_PROGRESS);
-                    event.setArg1(mPosition);
-                    event.setObj(mTask);
-                    event.setArg2(i);
-                    RxBus.getDefault().post(event);
+//                    event.reset();
+//                    event.setType(TaskEvent.EVENT_PROGRESS);
+//                    event.setArg1(mPosition);
+//                    event.setObj(mTask);
+//                    event.setArg2(i);
+//                    RxBus.getDefault().post(event);
                 } catch (InterruptedException e) { // task is cancelled
                     Log.d(TAG, "task is cancelled");
                     cleanup();
 
                     task.state = Task.State.Stopped;
-                    event.reset();
-                    event.setType(TaskEvent.EVENT_CANCELLED);
-                    event.setArg1(mPosition);
-                    event.setObj(task);
-                    RxBus.getDefault().post(event);
+//                    event.reset();
+//                    event.setType(TaskEvent.EVENT_CANCELLED);
+//                    event.setArg1(mPosition);
+//                    event.setObj(task);
+//                    RxBus.getDefault().post(event);
                     return;
                 }
             }

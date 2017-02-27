@@ -22,20 +22,28 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    packagingOptions {
+        merge 'META-INF/jem/parsers.prop'
+    }
 }
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile('pw.phylame.jem:jem-crawler:3.2.0') {
+    compile("pw.phylame.jem:jem-formats:$jem_version") {
+        exclude group: 'org.json', module: 'json'
+        exclude group: 'xpp3', module: 'xpp3'
+    }
+    compile("pw.phylame.jem:jem-crawler:$jem_version") {
         exclude group: 'org.json', module: 'json'
         exclude group: 'xpp3', module: 'xpp3'
     }
     compile "io.reactivex:rxandroid:$rxjava_version"
-    compile "pw.phylame.util:commons:$commons_version"
     provided "org.projectlombok:lombok:$lombok_version"
     compile "com.android.support:design:$support_version"
     compile "com.android.support:support-v4:$support_version"
     compile "com.android.support:appcompat-v7:$support_version"
     compile "com.android.support:recyclerview-v7:$support_version"
     compile "com.android.support:support-vector-drawable:$support_version"
+    compile 'com.tbruyelle.rxpermissions:rxpermissions:0.9.1@aar'
 }

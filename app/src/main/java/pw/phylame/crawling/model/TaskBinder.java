@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
+import jem.epm.EpmManager;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -68,6 +69,10 @@ public class TaskBinder extends Binder implements ITaskManager {
     public void submitTask(@NonNull ITask task) {
         checkTask(task);
         val wrapper = (TaskWrapper) task;
+        Validate.requireNotNull(wrapper.getBook(), "No book specified");
+        Validate.requireNotNull(wrapper.getOutput(), "No output specified");
+        Validate.requireNotEmpty(wrapper.getFormat(), "Format is null or empty");
+        Validate.require(EpmManager.hasMaker(wrapper.getFormat()), "Unsupported format: %s", wrapper.getFormat());
         Validate.require(!mTasks.contains(wrapper), "Task submitted: %s", task);
         mLock.lock();
         try {

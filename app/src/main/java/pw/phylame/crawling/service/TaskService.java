@@ -12,14 +12,10 @@ import pw.phylame.commons.value.Lazy;
 import pw.phylame.crawling.R;
 import pw.phylame.crawling.model.TaskBinder;
 
-/**
- * Created by Mnelx on 2017-2-26.
- */
-
 public class TaskService extends Service {
     private TaskBinder mBinder;
     private final Lazy<ExecutorService> mExecutor = new Lazy<ExecutorService>(() -> {
-        val count = Math.max(getResources().getInteger(R.integer.init_task_limit), Runtime.getRuntime().availableProcessors() * 2);
+        val count = Math.max(getResources().getInteger(R.integer.init_task_limit), Runtime.getRuntime().availableProcessors());
         return Executors.newFixedThreadPool(count);
     });
 

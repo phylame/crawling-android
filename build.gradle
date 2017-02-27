@@ -2,10 +2,10 @@
 
 buildscript {
     ext {
+        jem_version = '3.2.0'
         rxjava_version = '1.2.1'
         lombok_version = '1.16.14'
-        support_version = '25.2.0'
-        commons_version = '1.1.0'
+        support_version = '25.1.1'
     }
 
     repositories {

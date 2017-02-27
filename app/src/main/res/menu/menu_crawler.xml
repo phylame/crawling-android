@@ -5,19 +5,21 @@
     <item
         android:id="@+id/action_add"
         android:icon="@mipmap/ic_add_file"
+        android:orderInCategory="100"
         android:title="@string/action_add"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_edit"
         android:icon="@mipmap/ic_edit_column"
+        android:orderInCategory="101"
         android:title="@string/action_edit"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_settings"
-        android:orderInCategory="100"
+        android:orderInCategory="102"
         android:title="@string/action_settings" />
     <item
         android:id="@+id/action_exit"
-        android:orderInCategory="101"
+        android:orderInCategory="103"
         android:title="@string/action_exit" />
 </menu>

@@ -2,6 +2,7 @@ package pw.phylame.crawling.model;
 
 import android.util.Log;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -10,24 +11,36 @@ import java.util.concurrent.Future;
 
 import jem.Chapter;
 import jem.crawler.CrawlerBook;
+import jem.crawler.CrawlerListener;
+import jem.crawler.CrawlerListenerAdapter;
 import jem.crawler.CrawlerText;
+import jem.epm.EpmManager;
+import jem.epm.EpmOutParam;
+import jem.util.JemException;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 import lombok.val;
 import pw.phylame.commons.value.Lazy;
 import pw.phylame.support.RxBus;
 
-class TaskWrapper implements ITask, Runnable {
+class TaskWrapper extends ITask implements Runnable {
     private static final String TAG = TaskWrapper.class.getSimpleName();
     static final Lazy<ExecutorService> sExecutor = new Lazy<>(() -> Executors.newFixedThreadPool(48));
 
     State mState;
     int mPosition;
-    CrawlerBook mBook;
     Future<?> mFuture;
     private List<Future<?>> mFutures = new LinkedList<>();
 
     @Override
     public State getState() {
         return mState;
+    }
+
+    @Override
+    public int getTotal() {
+        return getBook().getTotalChapters();
     }
 
     boolean cancel() {
@@ -71,41 +84,41 @@ class TaskWrapper implements ITask, Runnable {
                 .obj(this));
     }
 
+    private CrawlerListener mListener = new CrawlerListenerAdapter() {
+        @Override
+        public void textFetching(Chapter chapter, int total, int current) {
+            RxBus.getDefault().post(TaskEvent.obtain()
+                    .type(TaskEvent.EVENT_PROGRESS)
+                    .arg1(mPosition)
+                    .arg2(current)
+                    .obj(this));
+        }
+    };
+
     @Override
     public void run() {
-        mState = ITask.State.Started;
+        mState = State.Started;
         RxBus.getDefault().post(TaskEvent.obtain()
                 .type(TaskEvent.EVENT_LIFECYCLE)
                 .arg1(mPosition)
                 .obj(this));
 
-        for (val sub : mBook) {
-            if (Thread.interrupted()) {
-                onCancelled();
-                return;
-            }
-            fetchTexts(sub);
-        }
-    }
-
-    private void fetchTexts(Chapter chapter) {
-        if (Thread.interrupted()) {
-            onCancelled();
-            return;
-        }
-        val text = chapter.getText();
-        if (text instanceof CrawlerText) {
-            val ct = (CrawlerText) text;
-            if (!ct.isFetched() && !ct.isSubmitted()) {
-                mFutures.add(sExecutor.get().submit(ct));
-            }
-        }
-        for (val sub : chapter) {
-            if (Thread.interrupted()) {
-                onCancelled();
-                return;
-            }
-            fetchTexts(sub);
+        val book = getBook();
+        book.getContext().setListener(mListener);
+        mFutures = book.initTexts(sExecutor.get(), false);
+        try {
+            EpmManager.writeBook(getBook(), getOutput(), getFormat(), null);
+            mState = State.Finished;
+            RxBus.getDefault().post(TaskEvent.obtain()
+                    .type(TaskEvent.EVENT_LIFECYCLE)
+                    .arg1(mPosition)
+                    .obj(this));
+        } catch (IOException | JemException e) {
+            mState = State.Failed;
+            RxBus.getDefault().post(TaskEvent.obtain()
+                    .type(TaskEvent.EVENT_ERROR)
+                    .arg1(mPosition)
+                    .obj(e));
         }
     }
 
