@@ -8,5 +8,10 @@
     <dimen name="fab_margin">0dp</dimen>
     <dimen name="design_fab_size_normal" tools:override="true">45dp</dimen>
 
+    <dimen name="book_item_padding">7sp</dimen>
+    <dimen name="book_cover_margin">5dp</dimen>
+    <dimen name="book_title_font_size">16sp</dimen>
+    <dimen name="book_intro_font_size">12sp</dimen>
+
     <dimen name="text_margin">16dp</dimen>
 </resources>

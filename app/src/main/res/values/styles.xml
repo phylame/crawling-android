@@ -17,7 +17,6 @@
 
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="toolbarStyle">@style/AppTheme.Toolbar</item>
-        <item name="elevation">0dp</item>
     </style>
 
     <style name="AppTheme.Toolbar" parent="Widget.AppCompat.Toolbar">
@@ -32,8 +31,9 @@
     </style>
 
     <style name="AppTheme.ActionMode" parent="Widget.AppCompat.ActionMode">
-        <item name="height">?attr/actionBarSize</item>
+        <item name="height">@dimen/action_bar_height</item>
         <item name="background">?attr/colorPrimary</item>
+        <item name="navigationIcon">@mipmap/ic_back</item>
     </style>
 
     <style name="AppTheme.TabLayout" parent="Widget.Design.TabLayout">

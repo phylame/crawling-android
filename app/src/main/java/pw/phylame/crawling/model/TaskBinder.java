@@ -2,8 +2,12 @@ package pw.phylame.crawling.model;
 
 import android.os.Binder;
 
+import java.lang.ref.WeakReference;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,6 +33,7 @@ public class TaskBinder extends Binder implements ITaskManager {
             tasks.add(wrapper);
             wrapper.mPosition = tasks.size() - 1;
             wrapper.mState = ITask.State.Submitted;
+            wrapper.mBinder = new WeakReference<>(this);
             RxBus.getDefault().post(TaskEvent.obtain()
                     .type(TaskEvent.EVENT_SUBMIT)
                     .arg1(wrapper.mPosition)
@@ -66,6 +71,11 @@ public class TaskBinder extends Binder implements ITaskManager {
     }
 
     @Override
+    public List<? extends ITask> tasks() {
+        return Collections.unmodifiableList(mTasks);
+    }
+
+    @Override
     public void submitTask(@NonNull ITask task) {
         checkTask(task);
         val wrapper = (TaskWrapper) task;
@@ -77,10 +87,14 @@ public class TaskBinder extends Binder implements ITaskManager {
         mLock.lock();
         try {
             submitDirectly(wrapper);
-            wrapper.mFuture = mExecutor.submit(wrapper);
+            submitTask0(wrapper);
         } finally {
             mLock.unlock();
         }
+    }
+
+    void submitTask0(TaskWrapper wrapper) {
+        wrapper.mFuture = mExecutor.submit(wrapper);
     }
 
     @Override
@@ -90,25 +104,31 @@ public class TaskBinder extends Binder implements ITaskManager {
         Validate.require(mTasks.contains(wrapper), "No such task: %s", task);
         mLock.lock();
         try {
-            val future = wrapper.mFuture;
-            if (future.isDone()) {
-                wrapper.mState = ITask.State.Deleted;
-            } else if (future.isCancelled() || wrapper.cancel()) {
-                wrapper.mState = ITask.State.Cancelled;
-            } else {
-                throw new IllegalStateException("cannot remove task: " + wrapper);
-            }
-            removeDirectly(wrapper);
+            deleteTask0(wrapper);
         } finally {
             mLock.unlock();
         }
+    }
+
+    private void deleteTask0(TaskWrapper wrapper) {
+        val future = wrapper.mFuture;
+        if (future.isDone()) {
+            wrapper.mState = ITask.State.Deleted;
+        } else if (future.isCancelled() || wrapper.cancel()) {
+            wrapper.mState = ITask.State.Cancelled;
+        } else {
+            throw new IllegalStateException("cannot remove task: " + wrapper);
+        }
+        removeDirectly(wrapper);
     }
 
     @Override
     public void deleteTasks(@NonNull Collection<ITask> tasks) {
         mLock.lock();
         try {
-            Functionals.foreach(tasks.iterator(), this::deleteTask);
+            for (val task : tasks.toArray(new ITask[tasks.size()])) {
+                deleteTask0((TaskWrapper) task);
+            }
         } finally {
             mLock.unlock();
         }
@@ -122,9 +142,9 @@ public class TaskBinder extends Binder implements ITaskManager {
         mLock.lock();
         try {
             if (start) {
-                wrapper.pause();
-            } else {
                 wrapper.start();
+            } else {
+                wrapper.pause();
             }
         } finally {
             mLock.unlock();

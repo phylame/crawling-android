@@ -3,6 +3,7 @@ package pw.phylame.crawling.model;
 import android.util.Log;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +16,7 @@ import jem.crawler.CrawlerListenerAdapter;
 import jem.epm.EpmManager;
 import jem.util.JemException;
 import lombok.val;
+import pw.phylame.commons.util.Validate;
 import pw.phylame.commons.value.Lazy;
 import pw.phylame.support.RxBus;
 
@@ -25,6 +27,8 @@ class TaskWrapper extends ITask implements Runnable {
     State mState;
     int mPosition;
     Future<?> mFuture;
+    private volatile int mProgress = 0;
+    WeakReference<TaskBinder> mBinder;
     private List<Future<?>> mFutures = new LinkedList<>();
 
     @Override
@@ -50,6 +54,11 @@ class TaskWrapper extends ITask implements Runnable {
         return getBook().getTotalChapters();
     }
 
+    @Override
+    public int getProgress() {
+        return mProgress;
+    }
+
     boolean cancel() {
         if (mFuture.isDone() || mFuture.isCancelled()) {
             return true;
@@ -64,33 +73,38 @@ class TaskWrapper extends ITask implements Runnable {
     }
 
     void start() {
-        if (mState == ITask.State.Paused) {
-            Log.d(TAG, "already paused: " + this);
-            return;
-        } else if (mState != ITask.State.Started) {
-            throw new IllegalStateException("Task is not started: " + this);
+        System.out.println("TaskWrapper.start");
+        if (mState == State.Started) {
+            throw new IllegalStateException("Task is already started: " + this);
+        } else if (mState != State.Paused) {
+            throw new IllegalStateException("Task is not paused: " + this);
         }
-        setState(ITask.State.Started);
+        Validate.requireNotNull(mBinder, "mBinder is null");
+        mBinder.get().submitTask0(this);
+        setState(State.Started);
     }
 
     void pause() {
-        if (mState == ITask.State.Started) {
-            Log.d(TAG, "already started: " + this);
-            return;
-        } else if (mState != ITask.State.Paused) {
-            throw new IllegalStateException("Task is not paused: " + this);
+        System.out.println("TaskWrapper.pause");
+        if (mState == State.Paused) {
+            throw new IllegalStateException("Task is already paused: " + this);
+        } else if (mState != State.Started && mState != State.Submitted) {
+            throw new IllegalStateException("Task is not started or submitted: " + this);
         }
-        setState(ITask.State.Paused);
+        if (cancel()) {
+            setState(ITask.State.Paused);
+        }
     }
 
     private CrawlerListener mListener = new CrawlerListenerAdapter() {
         @Override
         public void textFetched(Chapter chapter, int total, int current) {
+            mProgress = current;
             RxBus.getDefault().post(TaskEvent
                     .obtain()
                     .type(TaskEvent.EVENT_PROGRESS)
                     .arg1(mPosition)
-                    .arg2(current));
+                    .obj(chapter));
         }
     };
 
@@ -99,11 +113,11 @@ class TaskWrapper extends ITask implements Runnable {
         setState(State.Started);
         val book = getBook();
         book.getContext().setListener(mListener);
-        mFutures = book.initTexts(sExecutor.get(), false);
+        mFutures = book.initTexts(sExecutor.get(), mProgress);
         try {
             book.awaitFetched();
         } catch (InterruptedException e) {
-            setState(State.Cancelled);
+            Log.d(TAG, "interrupt waiting for fetching");
             return;
         }
         try {
@@ -123,7 +137,7 @@ class TaskWrapper extends ITask implements Runnable {
                 .obj(this));
     }
 
-    private void cleanup() {
+    public void cleanup() {
+        getBook().cleanup();
     }
-
 }

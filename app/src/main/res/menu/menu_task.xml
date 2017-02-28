@@ -5,11 +5,11 @@
     <item
         android:id="@+id/action_add"
         android:icon="@mipmap/ic_add_file"
-        android:title="@string/action_add"
+        android:title="@string/add"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_edit"
         android:icon="@mipmap/ic_edit_column"
-        android:title="@string/action_edit"
+        android:title="@string/edit"
         app:showAsAction="ifRoom" />
 </menu>

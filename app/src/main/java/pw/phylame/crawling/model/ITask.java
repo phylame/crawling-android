@@ -24,6 +24,8 @@ public abstract class ITask {
 
     public abstract int getTotal();
 
+    public abstract int getProgress();
+
     public String getName() {
         return Attributes.getTitle(mBook);
     }

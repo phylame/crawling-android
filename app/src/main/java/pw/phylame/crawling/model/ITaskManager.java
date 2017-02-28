@@ -1,6 +1,8 @@
 package pw.phylame.crawling.model;
 
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 public interface ITaskManager {
     /**
@@ -9,6 +11,13 @@ public interface ITaskManager {
      * @return the task
      */
     ITask newTask();
+
+    /**
+     * Gets iterator for all tasks.
+     *
+     * @return the iterator
+     */
+    List<? extends ITask> tasks();
 
     /**
      * Submits a task for processing.
