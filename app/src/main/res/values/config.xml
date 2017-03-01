@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <integer name="exit_check_millis">2000</integer>
-    <integer name="init_task_limit">3</integer>
+    <integer name="default_task_count">3</integer>
+    <integer name="exit_delay_millis">2000</integer>
 </resources>

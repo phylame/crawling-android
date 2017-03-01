@@ -6,6 +6,7 @@ import java.io.File;
 
 import jem.Attributes;
 import jem.crawler.CrawlerBook;
+import jem.crawler.CrawlerConfig;
 import lombok.NonNull;
 
 public abstract class ITask {
@@ -13,8 +14,10 @@ public abstract class ITask {
         Submitted, Started, Paused, Finished, Failed, Cancelled, Deleted
     }
 
+    private String mURL;
     private File mOutput;
     private String mFormat;
+    private boolean mBackup;
     private CrawlerBook mBook;
 
     public Drawable cover;
@@ -26,8 +29,12 @@ public abstract class ITask {
 
     public abstract int getProgress();
 
-    public String getName() {
-        return Attributes.getTitle(mBook);
+    public String getURL() {
+        return mURL;
+    }
+
+    public void setURL(String url) {
+        this.mURL = url;
     }
 
     public File getOutput() {
@@ -44,6 +51,14 @@ public abstract class ITask {
 
     public void setFormat(@NonNull String format) {
         this.mFormat = format;
+    }
+
+    public boolean isBackup() {
+        return mBackup;
+    }
+
+    public void setBackup(boolean backup) {
+        this.mBackup = backup;
     }
 
     public CrawlerBook getBook() {

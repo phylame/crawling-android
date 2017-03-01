@@ -1,13 +1,12 @@
 package pw.phylame.crawling.activity;
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.res.TypedArray;
 import android.graphics.BitmapFactory;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.media.ThumbnailUtils;
 import android.os.Bundle;
 import android.os.Environment;
@@ -19,6 +18,7 @@ import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -51,7 +51,8 @@ import pw.phylame.commons.util.Validate;
 import pw.phylame.commons.value.Lazy;
 import pw.phylame.crawling.CrawlerApp;
 import pw.phylame.crawling.R;
-import pw.phylame.crawling.WorkerUtils;
+import pw.phylame.crawling.Workers;
+import pw.phylame.crawling.model.DataHub;
 import pw.phylame.crawling.model.ITask;
 import pw.phylame.crawling.model.ITaskManager;
 import pw.phylame.crawling.model.TaskEvent;
@@ -68,16 +69,18 @@ import rx.schedulers.Schedulers;
 import static pw.phylame.support.Views.viewById;
 
 public class CrawlerActivity extends BaseActivity {
+    public static final int REQUEST_TASK = 100;
+
     private View mPlaceholder;
     private TaskAdapter mAdapter;
     private ActionMode mActionMode;
     private TimedAction mExitAction;
     private ITaskManager mTaskManager;
     private Subscription mSubscription;
-    private RecyclerView mRecyclerView;
+    private RecyclerView mRecycler;
     private Set<ITask> mSelections = new LinkedHashSet<>();
 
-    private ServiceConnection mConnection = new ServiceConnection() {
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             if (name.getShortClassName().equals(".service.TaskService")) {
@@ -85,11 +88,17 @@ public class CrawlerActivity extends BaseActivity {
                 mAdapter.mTasks.clear();
                 mAdapter.onTasksAdded(mTaskManager.tasks());
                 mPlaceholder.setVisibility(mAdapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
+
+                if (mTaskData != null) {
+                    prepareTask(mTaskData);
+                    mTaskData = null;
+                }
             }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG, "lost connection to " + name);
             if (name.getShortClassName().equals(".service.TaskService")) {
                 mTaskManager = null;
                 unregisterEvents();
@@ -97,10 +106,10 @@ public class CrawlerActivity extends BaseActivity {
         }
     };
 
-    private ActionMode.Callback mCallback = new ActionMode.Callback() {
+    private ActionMode.Callback mActionModeCallback = new ActionMode.Callback() {
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            mode.getMenuInflater().inflate(R.menu.menu_task_manage, menu);
+            mode.getMenuInflater().inflate(R.menu.menu_task, menu);
             mAdapter.notifyItemRangeChanged(0, mAdapter.getItemCount(), TaskEvent.EVENT_LIFECYCLE);
             mSelections.clear();
             return true;
@@ -153,20 +162,20 @@ public class CrawlerActivity extends BaseActivity {
         setContentView(R.layout.activity_crawler);
         setSupportActionBar(viewById(this, R.id.toolbar));
         mPlaceholder = findViewById(R.id.placeholder);
-        initRecycler();
 
+        initRecycler();
         findViewById(R.id.fab).setOnClickListener(v -> newTask());
 
-        mExitAction = new TimedAction(getResources().getInteger(R.integer.exit_check_millis));
+        mExitAction = new TimedAction(getResources().getInteger(R.integer.exit_delay_millis));
     }
 
     private void initRecycler() {
         mAdapter = new TaskAdapter();
-        mRecyclerView = viewById(this, R.id.recycler);
-        mRecyclerView.setAdapter(mAdapter);
-        mRecyclerView.setHasFixedSize(true);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mRecyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+        mRecycler = viewById(this, R.id.recycler);
+        mRecycler.setAdapter(mAdapter);
+        mRecycler.setHasFixedSize(true);
+        mRecycler.setLayoutManager(new LinearLayoutManager(this));
+        mRecycler.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
     }
 
     @Override
@@ -174,7 +183,7 @@ public class CrawlerActivity extends BaseActivity {
         super.onStart();
         val intent = new Intent(this, TaskService.class);
         startService(intent);
-        bindService(intent, mConnection, BIND_AUTO_CREATE);
+        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
     @Override
@@ -193,7 +202,7 @@ public class CrawlerActivity extends BaseActivity {
     protected void onStop() {
         super.onStop();
         mTaskManager = null;
-        unbindService(mConnection);
+        unbindService(mServiceConnection);
     }
 
     private void unregisterEvents() {
@@ -223,12 +232,16 @@ public class CrawlerActivity extends BaseActivity {
             case TaskEvent.EVENT_SUBMIT: {
                 mAdapter.onTaskAdded((ITask) e.obj);
                 mPlaceholder.setVisibility(View.GONE);
-                mRecyclerView.smoothScrollToPosition(mAdapter.getItemCount());
+                mRecycler.smoothScrollToPosition(mAdapter.getItemCount());
+            }
+            break;
+            case TaskEvent.EVENT_FETCHED: {
+                mAdapter.notifyItemChanged(e.arg1);
             }
             break;
             case TaskEvent.EVENT_DELETE: {
+                mSelections.remove(e.obj);
                 mAdapter.onTaskRemoved(e.arg1);
-                mSelections.remove((ITask) e.obj);
                 if (isInSelection()) {
                     if (mAdapter.getItemCount() == 0) {
                         mActionMode.finish();
@@ -255,7 +268,7 @@ public class CrawlerActivity extends BaseActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_add:
-                Activities.startActivity(this, NewTaskActivity.class);
+                Activities.startActivityForResult(this, TaskActivity.class, REQUEST_TASK);
                 break;
             case R.id.action_edit:
                 beginSelections();
@@ -272,13 +285,31 @@ public class CrawlerActivity extends BaseActivity {
         return true;
     }
 
+    private Intent mTaskData;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_TASK: {
+                if (resultCode == RESULT_OK) {
+                    mTaskData = data;
+                }
+            }
+            break;
+            default: {
+                super.onActivityResult(requestCode, resultCode, data);
+            }
+            break;
+        }
+    }
+
     @Override
     public void onBackPressed() {
         if (isCompleted()) {
             if (mExitAction.isEnable()) {
                 exitApp0();
             } else {
-                Toast.makeText(this, R.string.exit_check_tip, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.exit_delay_tip, Toast.LENGTH_SHORT).show();
             }
         } else {
             exitApp();
@@ -291,9 +322,7 @@ public class CrawlerActivity extends BaseActivity {
         } else {
             new AlertDialog.Builder(this)
                     .setTitle(R.string.exit_title)
-                    .setPositiveButton(R.string.ok, ((dialog, which) -> {
-                        exitApp0();
-                    }))
+                    .setPositiveButton(R.string.ok, ((dialog, which) -> exitApp0()))
                     .setPositiveButton(R.string.discard, null)
                     .create()
                     .show();
@@ -315,7 +344,7 @@ public class CrawlerActivity extends BaseActivity {
 
     private boolean beginSelections() {
         if (mActionMode == null) {
-            mActionMode = startSupportActionMode(mCallback);
+            mActionMode = startSupportActionMode(mActionModeCallback);
             updateActionMenus();
             return true;
         }
@@ -358,7 +387,7 @@ public class CrawlerActivity extends BaseActivity {
     }
 
     private void ensureTaskServiceBound() {
-        Validate.requireNotNull(mTaskManager, "bind to task service first");
+        Validate.requireNotNull(mTaskManager, "Bind to task service first");
     }
 
     private void newTask() {
@@ -372,6 +401,25 @@ public class CrawlerActivity extends BaseActivity {
                 Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void prepareTask(Intent data) {
+        if (mTaskManager == null) {
+            Log.d(TAG, "not bind");
+            return;
+        }
+        val task = mTaskManager.newTask();
+        task.setFormat(data.getStringExtra(TaskActivity.FORMAT_KEY));
+        task.setBackup(data.getBooleanExtra(TaskActivity.BACKUP_KEY, false));
+        task.setOutput(new File(data.getStringExtra(TaskActivity.OUTPUT_KEY)));
+        val key = data.getIntExtra(TaskActivity.DATA_KEY, -1);
+        if (key != -1) {
+            Pair<CrawlerBook, CrawlerConfig> pair = DataHub.take(key);
+            task.setBook(pair.first);
+        } else { // no fetched book
+            task.setURL(data.getStringExtra(TaskActivity.URL_KEY));
+        }
+        mTaskManager.submitTask(task);
     }
 
     private void viewTask(ITask task) {
@@ -438,13 +486,10 @@ public class CrawlerActivity extends BaseActivity {
     }
 
     private class TaskAdapter extends RecyclerView.Adapter<TaskHolder> {
-        private final Lazy<Drawable> mDefaultCover = new Lazy<>(() -> ContextCompat.getDrawable(CrawlerActivity.this, R.mipmap.ic_book));
-
         private final Lazy<Integer> mCoverHeight = new Lazy<>(() -> {
-            int[] attrs = {android.R.attr.listPreferredItemHeight};
+            int[] attrs = {R.attr.listPreferredItemHeight};
             val typedValue = new TypedValue();
-            TypedArray array = obtainStyledAttributes(typedValue.resourceId, attrs);
-            return array.getDimensionPixelSize(0, -1) - getResources().getDimensionPixelSize(R.dimen.book_cover_margin);
+            return obtainStyledAttributes(typedValue.resourceId, attrs).getDimensionPixelSize(0, -1) - getResources().getDimensionPixelSize(R.dimen.book_cover_margin);
         });
 
         private final Lazy<Integer> mCoverWidth = new Lazy<>(() -> (int) (mCoverHeight.get() * 0.75));
@@ -452,7 +497,7 @@ public class CrawlerActivity extends BaseActivity {
         private final LayoutInflater mInflater;
         private final List<ITask> mTasks = new ArrayList<>();
 
-        private TaskAdapter() {
+        TaskAdapter() {
             mInflater = LayoutInflater.from(CrawlerActivity.this);
         }
 
@@ -478,7 +523,7 @@ public class CrawlerActivity extends BaseActivity {
 
         @Override
         public TaskHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            val holder = new TaskHolder(mInflater.inflate(R.layout.task_item, parent, false));
+            val holder = new TaskHolder(mInflater.inflate(R.layout.task_list_item, parent, false));
             setupListeners(holder);
             return holder;
         }
@@ -487,7 +532,7 @@ public class CrawlerActivity extends BaseActivity {
             holder.itemView.setOnClickListener(v -> {
                 val task = (ITask) v.getTag(R.id.tag_task);
                 if (isInSelection()) {
-                    toggleSelection(task, (int) v.getTag(R.id.task_position));
+                    toggleSelection(task, (int) v.getTag(R.id.tag_position));
                 } else {
                     viewTask(task);
                 }
@@ -496,7 +541,7 @@ public class CrawlerActivity extends BaseActivity {
             holder.option.setOnClickListener(v -> {
                 val task = (ITask) v.getTag(R.id.tag_task);
                 if (isInSelection()) {
-                    toggleSelection(task, (int) v.getTag(R.id.task_position));
+                    toggleSelection(task, (int) v.getTag(R.id.tag_position));
                 } else {
                     switch (task.getState()) {
                         case Started: {
@@ -525,42 +570,45 @@ public class CrawlerActivity extends BaseActivity {
         public void onBindViewHolder(TaskHolder holder, int position, List<Object> payloads) {
             val task = mTasks.get(position);
             holder.itemView.setTag(R.id.tag_task, task);
-            holder.itemView.setTag(R.id.task_position, position);
+            holder.itemView.setTag(R.id.tag_position, position);
             holder.option.setTag(R.id.tag_task, task);
-            holder.option.setTag(R.id.task_position, position);
+            holder.option.setTag(R.id.tag_position, position);
             if (payloads.isEmpty()) {
-                bindData(holder, task);
+                bindData(holder, task); // update all
             } else {
                 val o = payloads.get(0);
-                if (o instanceof Chapter) {
+                if (o instanceof Chapter) { // update progress
                     bindData(holder, task, TaskEvent.EVENT_PROGRESS);
                     holder.intro.setText(Attributes.getTitle((Chapter) o));
-                } else if (o instanceof Integer) {
+                } else if (o instanceof Integer) { // update event
                     bindData(holder, task, (int) o);
                 }
             }
         }
 
         private void bindData(TaskHolder holder, ITask task) {
+            val book = task.getBook();
             if (task.cover != null) {
                 holder.icon.setImageDrawable(task.cover);
             } else {
-                holder.icon.setImageDrawable(mDefaultCover.get());
-                val cover = Attributes.getCover(task.getBook());
-                if (cover != null) {
-                    WorkerUtils.execute(() -> {
-                        val bmp = BitmapFactory.decodeStream(cover.openStream());
-                        val m = ThumbnailUtils.extractThumbnail(bmp, mCoverWidth.get(), mCoverHeight.get());
-                        bmp.recycle();
-                        return m;
-                    }, bmp -> {
-                        holder.icon.setImageBitmap(bmp);
-                        task.cover = holder.icon.getDrawable();
-                    }, err -> Log.d(TAG, "cannot load cover:" + cover));
+                holder.icon.setImageResource(R.mipmap.ic_book);
+                if (book != null) {
+                    val cover = Attributes.getCover(book);
+                    if (cover != null) {
+                        Workers.execute(() -> {
+                            val bmp = BitmapFactory.decodeStream(cover.openStream());
+                            val m = ThumbnailUtils.extractThumbnail(bmp, mCoverWidth.get(), mCoverHeight.get());
+                            bmp.recycle();
+                            return m;
+                        }, bmp -> {
+                            holder.icon.setImageBitmap(bmp);
+                            task.cover = holder.icon.getDrawable();
+                        }, err -> Log.d(TAG, "cannot load cover:" + cover));
+                    }
                 }
             }
-            holder.name.setText(task.getName());
-            holder.intro.setText(Attributes.getAuthor(task.getBook()));
+            holder.name.setText(book != null ? Attributes.getTitle(book) : "------");
+            holder.intro.setText(book != null ? Attributes.getAuthor(book) : "--------");
             holder.progress.setMax(task.getTotal());
             holder.progress.setProgress(task.getProgress());
             holder.info.setText(task.getProgress() + "/" + task.getTotal());
@@ -594,7 +642,12 @@ public class CrawlerActivity extends BaseActivity {
                 case Started:
                     return R.mipmap.ic_pause;
                 case Paused:
+                case Submitted:
                     return R.mipmap.ic_play;
+                case Finished:
+                    return R.mipmap.ic_view_details;
+                case Failed:
+                    return R.mipmap.ic_error;
                 default:
                     return R.mipmap.ic_view_details;
             }
@@ -611,10 +664,10 @@ public class CrawlerActivity extends BaseActivity {
 
         TaskHolder(View view) {
             super(view);
-            icon = viewById(view, R.id.icon);
+            icon = viewById(view, R.id.cover);
             name = viewById(view, R.id.name);
             option = viewById(view, R.id.option);
-            progress = viewById(view, R.id.progressBar);
+            progress = viewById(view, R.id.progress);
             intro = viewById(view, R.id.intro);
             info = viewById(view, R.id.info);
         }

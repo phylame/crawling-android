@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <dimen name="activity_horizontal_margin">16dp</dimen>
-    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="activity_horizontal_margin">8dp</dimen>
+    <dimen name="activity_vertical_margin">8dp</dimen>
 
     <dimen name="action_bar_height">48dp</dimen>
     <dimen name="tab_bar_height">42dp</dimen>
@@ -8,10 +8,17 @@
     <dimen name="fab_margin">0dp</dimen>
     <dimen name="design_fab_size_normal" tools:override="true">45dp</dimen>
 
+    <dimen name="item_icon_size">27dp</dimen>
+    <dimen name="item_font_size">15sp</dimen>
+    <dimen name="sub_item_margin">5dp</dimen>
+
     <dimen name="book_item_padding">7sp</dimen>
     <dimen name="book_cover_margin">5dp</dimen>
-    <dimen name="book_title_font_size">16sp</dimen>
-    <dimen name="book_intro_font_size">12sp</dimen>
+    <dimen name="book_title_size">16sp</dimen>
+    <dimen name="book_intro_size">12sp</dimen>
 
-    <dimen name="text_margin">16dp</dimen>
+    <dimen name="new_task_cover_height">167dp</dimen>
+    <dimen name="new_task_title_font_size">17sp</dimen>
+    <dimen name="new_task_author_font_size">13sp</dimen>
+    <dimen name="new_task_info_font_size">16sp</dimen>
 </resources>

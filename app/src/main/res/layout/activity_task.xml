@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_task"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context=".activity.TaskActivity">
+
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/AppTheme.AppBarOverlay">
+
+        <include layout="@layout/centered_toolbar" />
+    </android.support.design.widget.AppBarLayout>
+
+    <android.support.v4.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <android.support.v7.widget.AppCompatTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingEnd="@dimen/activity_horizontal_margin"
+                android:paddingLeft="@dimen/activity_horizontal_margin"
+                android:paddingRight="@dimen/activity_horizontal_margin"
+                android:paddingStart="@dimen/activity_horizontal_margin"
+                android:text="@string/new_task_details"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="19sp" />
+
+            <android.support.v7.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="?android:attr/listDivider"
+                    android:orientation="vertical"
+                    android:paddingEnd="@dimen/activity_horizontal_margin"
+                    android:paddingLeft="@dimen/activity_horizontal_margin"
+                    android:paddingRight="@dimen/activity_horizontal_margin"
+                    android:paddingStart="@dimen/activity_horizontal_margin"
+                    android:showDividers="middle">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="?attr/listPreferredItemHeightSmall"
+                        android:orientation="horizontal">
+
+                        <android.support.v7.widget.AppCompatImageView
+                            android:layout_width="@dimen/item_icon_size"
+                            android:layout_height="@dimen/item_icon_size"
+                            android:layout_gravity="center_vertical"
+                            android:tint="@color/colorAccent"
+                            app:srcCompat="@mipmap/ic_link" />
+
+                        <android.support.v7.widget.AppCompatAutoCompleteTextView
+                            android:id="@+id/url"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginLeft="@dimen/sub_item_margin"
+                            android:layout_marginStart="@dimen/sub_item_margin"
+                            android:layout_weight="1"
+                            android:background="@android:color/transparent"
+                            android:completionThreshold="2"
+                            android:hint="@string/new_task_url_hint"
+                            android:imeOptions="actionDone|flagNoExtractUi"
+                            android:inputType="textUri"
+                            android:maxLines="1"
+                            android:selectAllOnFocus="true"
+                            android:textAppearance="@style/itemTextAppearance" />
+
+                        <android.support.v7.widget.AppCompatImageView
+                            android:id="@+id/view"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginLeft="@dimen/sub_item_margin"
+                            android:layout_marginStart="@dimen/sub_item_margin"
+                            android:tint="@color/colorForeground"
+                            app:srcCompat="@mipmap/ic_visible" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="?attr/listPreferredItemHeightSmall"
+                        android:orientation="horizontal">
+
+                        <android.support.v7.widget.AppCompatImageView
+                            android:layout_width="@dimen/item_icon_size"
+                            android:layout_height="@dimen/item_icon_size"
+                            android:layout_gravity="center_vertical"
+                            android:tint="@color/colorAccent"
+                            app:srcCompat="@mipmap/ic_type" />
+
+                        <android.support.v7.widget.AppCompatSpinner
+                            android:id="@+id/formats"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginLeft="@dimen/sub_item_margin"
+                            android:layout_marginStart="@dimen/sub_item_margin"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/path_bar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/forward_background"
+                        android:minHeight="?attr/listPreferredItemHeightSmall"
+                        android:orientation="horizontal">
+
+                        <android.support.v7.widget.AppCompatImageView
+                            android:layout_width="@dimen/item_icon_size"
+                            android:layout_height="@dimen/item_icon_size"
+                            android:layout_gravity="center_vertical"
+                            android:tint="@color/colorAccent"
+                            app:srcCompat="@mipmap/ic_folder" />
+
+                        <android.support.v7.widget.AppCompatTextView
+                            android:id="@+id/path"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginLeft="@dimen/sub_item_margin"
+                            android:layout_marginStart="@dimen/sub_item_margin"
+                            android:layout_weight="1"
+                            android:ellipsize="marquee"
+                            android:maxLines="1"
+                            android:text="/sdcard/Download/tmp/books/crawler"
+                            android:textAppearance="@style/itemTextAppearance"
+                            tools:ignore="HardcodedText" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="?attr/listPreferredItemHeightSmall"
+                        android:orientation="horizontal">
+
+                        <android.support.v7.widget.AppCompatImageView
+                            android:layout_width="@dimen/item_icon_size"
+                            android:layout_height="@dimen/item_icon_size"
+                            android:layout_gravity="center_vertical"
+                            android:tint="@color/colorAccent"
+                            app:srcCompat="@mipmap/ic_save_as" />
+
+                        <android.support.v7.widget.AppCompatCheckBox
+                            android:id="@+id/backup"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginLeft="@dimen/sub_item_margin"
+                            android:layout_marginStart="@dimen/sub_item_margin"
+                            android:layout_weight="1"
+                            android:background="@android:color/transparent"
+                            android:button="@null"
+                            android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+                            android:drawableRight="?android:attr/listChoiceIndicatorMultiple"
+                            android:text="@string/new_task_backup"
+                            android:textColor="@color/textColorSecondary"
+                            android:textSize="@dimen/item_font_size" />
+                    </LinearLayout>
+                </LinearLayout>
+            </android.support.v7.widget.CardView>
+
+            <android.support.v7.widget.AppCompatTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingEnd="@dimen/activity_horizontal_margin"
+                android:paddingLeft="@dimen/activity_horizontal_margin"
+                android:paddingRight="@dimen/activity_horizontal_margin"
+                android:paddingStart="@dimen/activity_horizontal_margin"
+                android:text="@string/new_task_overview"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="19sp" />
+
+            <android.support.v7.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <LinearLayout
+                        android:id="@+id/overview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:divider="?android:attr/listDivider"
+                        android:orientation="vertical"
+                        android:paddingEnd="@dimen/activity_horizontal_margin"
+                        android:paddingLeft="@dimen/activity_horizontal_margin"
+                        android:paddingRight="@dimen/activity_horizontal_margin"
+                        android:paddingStart="@dimen/activity_horizontal_margin"
+                        android:showDividers="middle"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <android.support.v7.widget.AppCompatTextView
+                                android:id="@+id/name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="bottom"
+                                android:text="Title"
+                                android:textIsSelectable="true"
+                                android:textSize="@dimen/new_task_title_font_size" />
+
+                            <android.support.v7.widget.AppCompatTextView
+                                android:id="@+id/author"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="bottom"
+                                android:layout_marginLeft="@dimen/sub_item_margin"
+                                android:layout_marginStart="@dimen/sub_item_margin"
+                                android:text="Author"
+                                android:textIsSelectable="true"
+                                android:textSize="@dimen/new_task_author_font_size" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingBottom="5dp"
+                            android:paddingTop="5dp">
+
+                            <android.support.v7.widget.AppCompatImageView
+                                android:id="@+id/cover"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical" />
+
+                            <android.support.v7.widget.AppCompatTextView
+                                android:id="@+id/info"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginLeft="@dimen/sub_item_margin"
+                                android:layout_marginStart="@dimen/sub_item_margin"
+                                android:layout_weight="1"
+                                android:textIsSelectable="true"
+                                android:textSize="@dimen/new_task_info_font_size" />
+                        </LinearLayout>
+
+                        <android.support.v7.widget.AppCompatTextView
+                            android:id="@+id/intro"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:textIsSelectable="true"
+                            android:textSize="@dimen/new_task_info_font_size" />
+                    </LinearLayout>
+
+                    <android.support.v7.widget.AppCompatTextView
+                        android:id="@+id/tip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:padding="27dp"
+                        android:text="@string/new_task_overview_tip"
+                        android:textColor="@color/textColorSecondary"
+                        android:textSize="17sp" />
+                </FrameLayout>
+            </android.support.v7.widget.CardView>
+        </LinearLayout>
+    </android.support.v4.widget.NestedScrollView>
+
+    <ProgressBar
+        android:id="@+id/progress"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+</android.support.design.widget.CoordinatorLayout>

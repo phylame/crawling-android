@@ -2,6 +2,7 @@
 <android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_crawler"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
@@ -15,7 +16,10 @@
         <android.support.v7.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/action_bar_height" />
+            android:layout_height="@dimen/action_bar_height"
+            app:contentInsetLeft="@dimen/book_item_padding"
+            app:contentInsetStart="@dimen/book_item_padding"
+            app:logo="@mipmap/ic_spider" />
     </android.support.design.widget.AppBarLayout>
 
     <FrameLayout

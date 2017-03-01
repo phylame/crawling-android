@@ -79,7 +79,7 @@ public class TaskBinder extends Binder implements ITaskManager {
     public void submitTask(@NonNull ITask task) {
         checkTask(task);
         val wrapper = (TaskWrapper) task;
-        Validate.requireNotNull(wrapper.getBook(), "No book specified");
+        Validate.require(wrapper.getBook() != null || wrapper.getURL() != null, "No book or URL specified");
         Validate.requireNotNull(wrapper.getOutput(), "No output specified");
         Validate.requireNotEmpty(wrapper.getFormat(), "Format is null or empty");
         Validate.require(EpmManager.hasMaker(wrapper.getFormat()), "Unsupported format: %s", wrapper.getFormat());

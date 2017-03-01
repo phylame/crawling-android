@@ -15,14 +15,22 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
-public final class WorkerUtils {
-    private WorkerUtils() {
+public final class Workers {
+    private Workers() {
     }
 
     private static final Lazy<ExecutorService> sExecutor = new Lazy<>(() -> Executors.newFixedThreadPool(4));
 
-    public static <T> Subscription execute(@NonNull Provider<T> provider, @NonNull Action1<T> success, @NonNull Action1<Throwable> error) {
-        return Observable
+    public static void execute(@NonNull Runnable task) {
+        sExecutor.get().submit(task);
+    }
+
+    public static <T> void execute(@NonNull Provider<T> provider, @NonNull Action1<T> success) {
+        execute(provider, success, null);
+    }
+
+    public static <T> void execute(@NonNull Provider<T> provider, @NonNull Action1<T> success, Action1<Throwable> error) {
+        Observable
                 .create(new ProviderOnSubscribe<>(provider))
                 .subscribeOn(Schedulers.from(sExecutor.get()))
                 .observeOn(AndroidSchedulers.mainThread())

@@ -32,5 +32,6 @@ public class CrawlerApp extends Application {
 
     public void finish() {
         Functionals.foreach(activities.iterator(), Activity::finish);
+        Workers.cleanup();
     }
 }

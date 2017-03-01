@@ -1,6 +1,7 @@
 <resources>
 
     <style name="BaseTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Colors -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
@@ -9,44 +10,74 @@
         <item name="android:textColorPrimary">@color/textColorPrimary</item>
         <item name="android:textColorSecondary">@color/textColorSecondary</item>
 
+        <!-- ActionMode -->
         <item name="windowActionModeOverlay">true</item>
         <item name="actionModeStyle">@style/AppTheme.ActionMode</item>
+        <item name="actionBarPopupTheme">@style/AppTheme.PopupOverlay</item>
+        <item name="android:actionModeCloseDrawable">@mipmap/ic_back</item>
+
+        <!-- Spinner -->
+        <item name="android:spinnerStyle">@style/SpinnerTheme</item>
+        <item name="android:spinnerItemStyle">@style/SpinnerItem</item>
     </style>
 
     <style name="AppTheme" parent="BaseTheme" />
 
+    <!-- AppBar -->
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="toolbarStyle">@style/AppTheme.Toolbar</item>
     </style>
 
+    <!-- Toolbar -->
     <style name="AppTheme.Toolbar" parent="Widget.AppCompat.Toolbar">
         <item name="titleTextAppearance">@style/titleTextAppearance</item>
         <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
         <item name="contentInsetStartWithNavigation">0dp</item>
     </style>
 
+    <!-- PopupMenu -->
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light">
         <item name="android:textColorPrimary">@color/textColorPrimary</item>
-        <item name="android:colorBackground">@color/colorBackground</item>
+        <item name="android:colorBackground">@color/popupBackground</item>
     </style>
 
+    <!-- ActionMode -->
     <style name="AppTheme.ActionMode" parent="Widget.AppCompat.ActionMode">
-        <item name="height">@dimen/action_bar_height</item>
         <item name="background">?attr/colorPrimary</item>
-        <item name="navigationIcon">@mipmap/ic_back</item>
+        <item name="height">@dimen/action_bar_height</item>
+        <item name="contentInsetStartWithNavigation">0dp</item>
     </style>
 
+    <!-- TabLayout -->
     <style name="AppTheme.TabLayout" parent="Widget.Design.TabLayout">
         <item name="tabTextAppearance">@style/tabTextAppearance</item>
         <item name="tabIndicatorColor">#FFF</item>
     </style>
 
+    <!-- Toolbar Title-->
     <style name="titleTextAppearance" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
         <item name="android:textSize">18sp</item>
     </style>
 
+    <!-- Tab Title -->
     <style name="tabTextAppearance" parent="TextAppearance.Design.Tab">
         <item name="android:textSize">12sp</item>
     </style>
 
+    <!-- Item Text -->
+    <style name="itemTextAppearance" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">@dimen/item_font_size</item>
+        <item name="android:textColor">@color/textColorSecondary</item>
+    </style>
+
+    <!-- Spinner -->
+    <style name="SpinnerTheme" parent="Widget.AppCompat.Spinner">
+        <item name="android:background">@drawable/spinner_background</item>
+        <item name="android:popupBackground">@color/popupBackground</item>
+    </style>
+
+    <style name="SpinnerItem" parent="Widget.AppCompat.TextView.SpinnerItem">
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:textAppearance">@style/itemTextAppearance</item>
+    </style>
 </resources>

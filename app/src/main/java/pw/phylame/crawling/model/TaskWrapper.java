@@ -11,9 +11,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import jem.Chapter;
+import jem.crawler.CrawlerBook;
+import jem.crawler.CrawlerConfig;
 import jem.crawler.CrawlerListener;
 import jem.crawler.CrawlerListenerAdapter;
+import jem.crawler.CrawlerManager;
 import jem.epm.EpmManager;
+import jem.epm.util.ParserException;
 import jem.util.JemException;
 import lombok.val;
 import pw.phylame.commons.util.Validate;
@@ -51,12 +55,13 @@ class TaskWrapper extends ITask implements Runnable {
 
     @Override
     public int getTotal() {
-        return getBook().getTotalChapters();
+        val book = getBook();
+        return book != null ? book.getTotalChapters() : -1;
     }
 
     @Override
     public int getProgress() {
-        return mProgress;
+        return getBook() != null ? mProgress : -1;
     }
 
     boolean cancel() {
@@ -110,8 +115,30 @@ class TaskWrapper extends ITask implements Runnable {
 
     @Override
     public void run() {
+        CrawlerBook book = getBook();
+        if (book == null) {
+            try {
+                book = CrawlerManager.fetchBook(getURL(), new CrawlerConfig());
+                setBook(book);
+                RxBus.getDefault().post(TaskEvent
+                        .obtain()
+                        .type(TaskEvent.EVENT_FETCHED)
+                        .arg1(mPosition));
+            } catch (IOException | ParserException e) {
+                e.printStackTrace();
+                setState(State.Failed, e);
+                return;
+            }
+        } else {
+            try {
+                book.getContext().getCrawler().get().fetchAttributes();
+            } catch (IOException e) {
+                e.printStackTrace();
+                setState(State.Failed, e);
+                return;
+            }
+        }
         setState(State.Started);
-        val book = getBook();
         book.getContext().setListener(mListener);
         mFutures = book.initTexts(sExecutor.get(), mProgress);
         try {

@@ -15,7 +15,7 @@ import pw.phylame.crawling.model.TaskBinder;
 public class TaskService extends Service {
     private TaskBinder mBinder;
     private final Lazy<ExecutorService> mExecutor = new Lazy<ExecutorService>(() -> {
-        val count = Math.max(getResources().getInteger(R.integer.init_task_limit), Runtime.getRuntime().availableProcessors());
+        val count = Math.max(getResources().getInteger(R.integer.default_task_count), Runtime.getRuntime().availableProcessors());
         return Executors.newFixedThreadPool(count);
     });
 

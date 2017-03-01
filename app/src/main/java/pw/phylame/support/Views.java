@@ -7,6 +7,7 @@ import android.content.Context;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IdRes;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
 
 import lombok.NonNull;
@@ -27,6 +28,16 @@ public final class Views {
     @SuppressWarnings("unchecked")
     public static <T extends View> T viewById(@NonNull Activity activity, @IdRes int id) {
         return (T) activity.findViewById(id);
+    }
+
+    public static void hideIME(Context context, View view) {
+        val im = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        im.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
+
+    public static void showIME(Context context, View view) {
+        val im = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        im.showSoftInput(view, 0);
     }
 
     public static void showAnimated(@NonNull View view, boolean shown) {

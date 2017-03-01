@@ -2,10 +2,13 @@ package pw.phylame.crawling.activity;
 
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.support.annotation.IdRes;
 import android.support.annotation.LayoutRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.ColorUtils;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.widget.TextView;
 
 import com.tbruyelle.rxpermissions.RxPermissions;
 
@@ -17,12 +20,12 @@ import pw.phylame.crawling.CrawlerApp;
 import pw.phylame.crawling.R;
 import pw.phylame.support.StatusBarCompat;
 
+import static pw.phylame.support.Views.viewById;
+
 public abstract class BaseActivity extends AppCompatActivity {
     protected final String TAG = getClass().getSimpleName();
 
-    protected final Lazy<RxPermissions> mPermissions = new Lazy<>(() -> {
-        return new RxPermissions(this);
-    });
+    protected final Lazy<RxPermissions> mPermissions = new Lazy<>(() -> new RxPermissions(this));
 
     protected final void requestPermission(@NonNull String permission, @NonNull Consumer<Boolean> action) {
         mPermissions
@@ -36,6 +39,26 @@ public abstract class BaseActivity extends AppCompatActivity {
                 .get()
                 .request(permissions)
                 .subscribe(action::consume);
+    }
+
+    private TextView mTitleView;
+
+    protected final void setupCenteredToolbar(@IdRes int id) {
+        Toolbar toolbar = viewById(this, id);
+        setSupportActionBar(toolbar);
+        mTitleView = viewById(toolbar, R.id.title);
+        val actionBar = getSupportActionBar();
+        assert actionBar != null;
+        actionBar.setDisplayShowTitleEnabled(false);
+    }
+
+    @Override
+    protected void onTitleChanged(CharSequence title, int color) {
+        if (mTitleView != null) {
+            mTitleView.setText(title);
+        } else {
+            super.onTitleChanged(title, color);
+        }
     }
 
     @Override

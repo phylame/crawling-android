@@ -17,4 +17,9 @@ public final class Activities {
         val intent = new Intent(activity, target);
         activity.startActivity(intent);
     }
+
+    public static void startActivityForResult(Activity activity, Class<? extends Activity> target, int requestCode) {
+        val intent = new Intent(activity, target);
+        activity.startActivityForResult(intent, requestCode);
+    }
 }
