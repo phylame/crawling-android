@@ -6,19 +6,26 @@
     <dimen name="tab_bar_height">42dp</dimen>
 
     <dimen name="fab_margin">0dp</dimen>
+    <dimen name="design_fab_elevation" tools:override="true">6dp</dimen>
     <dimen name="design_fab_size_normal" tools:override="true">45dp</dimen>
+    <dimen name="cardview_default_radius" tools:override="true">0dp</dimen>
 
     <dimen name="item_icon_size">27dp</dimen>
     <dimen name="item_font_size">15sp</dimen>
+    <dimen name="item_option_size">24dp</dimen>
     <dimen name="sub_item_margin">5dp</dimen>
 
-    <dimen name="book_item_padding">7sp</dimen>
-    <dimen name="book_cover_margin">5dp</dimen>
-    <dimen name="book_title_size">16sp</dimen>
-    <dimen name="book_intro_size">12sp</dimen>
+    <dimen name="book_cover_margin">4dp</dimen>
+    <dimen name="book_cover_height">72dp</dimen>
+    <dimen name="book_cover_width">54dp</dimen>
+    <dimen name="book_title_size">17sp</dimen>
+    <dimen name="book_author_size">13sp</dimen>
+    <dimen name="book_intro_size">14sp</dimen>
 
-    <dimen name="new_task_cover_height">167dp</dimen>
-    <dimen name="new_task_title_font_size">17sp</dimen>
-    <dimen name="new_task_author_font_size">13sp</dimen>
-    <dimen name="new_task_info_font_size">16sp</dimen>
+    <dimen name="task_cover_width">108dp</dimen>
+    <dimen name="task_cover_height">144dp</dimen>
+    <dimen name="task_name_size">18sp</dimen>
+    <dimen name="task_author_size">12sp</dimen>
+    <dimen name="task_info_size">15sp</dimen>
+    <dimen name="task_intro_size">15sp</dimen>
 </resources>

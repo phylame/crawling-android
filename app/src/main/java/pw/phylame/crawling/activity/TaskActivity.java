@@ -3,14 +3,12 @@ package pw.phylame.crawling.activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
-import android.media.ThumbnailUtils;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
-import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,8 +21,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +35,6 @@ import java.util.List;
 import jem.Attributes;
 import jem.crawler.CrawlerBook;
 import jem.crawler.CrawlerConfig;
-import jem.crawler.CrawlerContext;
 import jem.crawler.CrawlerManager;
 import jem.epm.EpmManager;
 import jem.epm.util.ParserException;
@@ -43,10 +44,12 @@ import pw.phylame.commons.io.IOUtils;
 import pw.phylame.commons.util.CollectionUtils;
 import pw.phylame.commons.util.StringUtils;
 import pw.phylame.crawling.R;
-import pw.phylame.crawling.Workers;
-import pw.phylame.crawling.model.DataHub;
-import pw.phylame.crawling.util.JemUtils;
+import pw.phylame.crawling.model.ITask;
+import pw.phylame.crawling.util.GlideListenerAdapter;
+import pw.phylame.crawling.util.Jem;
+import pw.phylame.support.DataHub;
 import pw.phylame.support.Views;
+import pw.phylame.support.Worker;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -54,12 +57,8 @@ import rx.schedulers.Schedulers;
 import static pw.phylame.support.Views.hideIME;
 import static pw.phylame.support.Views.viewById;
 
-public class TaskActivity extends BaseActivity {
-    public static final String URL_KEY = "task.url";
-    public static final String FORMAT_KEY = "task.format";
-    public static final String OUTPUT_KEY = "task.output";
-    public static final String BACKUP_KEY = "task.backup";
-    public static final String DATA_KEY = "task.data";
+public class TaskActivity extends BaseActivity implements View.OnClickListener {
+    public static final int TASK_KEY = 100;
 
     private static final String HISTORY_NAME = "url-history";
     private static final String ENCODING = "UTF-16LE";
@@ -70,10 +69,9 @@ public class TaskActivity extends BaseActivity {
 
     private View mProgress;
 
-    private View mTip;
+    private View mPlaceholder;
     private View mOverview;
     private TextView mName;
-    private TextView mAuthor;
     private TextView mInfo;
     private TextView mIntro;
     private ImageView mCover;
@@ -82,7 +80,8 @@ public class TaskActivity extends BaseActivity {
     private List<String> mHistories;
     private ArrayAdapter<String> mAdapter;
 
-    private boolean mHasCover;
+    private ITask mTask;
+    private File mThumbnail;
     private CrawlerBook mBook;
     private CrawlerConfig mConfig;
 
@@ -90,39 +89,69 @@ public class TaskActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_task);
-        setupCenteredToolbar(R.id.toolbar);
+        setupCenteredToolbar(R.id.toolbar, true);
+        setupColoredStatus();
         setTitle(R.string.activity_new_task_title);
 
-        mURL = viewById(this, R.id.url);
-        findViewById(R.id.view).setOnClickListener(v -> fetchBook());
-        mFormat = viewById(this, R.id.formats);
-        mPath = viewById(this, R.id.path);
-        findViewById(R.id.path_bar).setOnClickListener(v -> {
-            new Intent(Intent.ACTION_VIEW);
-        });
-        mOverview = viewById(this, R.id.overview);
-        mTip = viewById(this, R.id.tip);
-        mInfo = viewById(this, R.id.info);
-        mIntro = viewById(this, R.id.intro);
-        mCover = viewById(this, R.id.cover);
-        mName = viewById(this, R.id.name);
-        mAuthor = viewById(this, R.id.author);
-        mBackup = viewById(this, R.id.backup);
-        mProgress = viewById(this, R.id.progress);
+        mTask = DataHub.get(TASK_KEY);
+        if (mTask == null) {
+            Log.e(TAG, "no task specified");
+            finish();
+        }
 
-        mConfig = new CrawlerConfig();
+        loadViews();
 
         val prefs = getSharedPreferences("general", MODE_PRIVATE);
+
+        mConfig = new CrawlerConfig();
+        mConfig.timeout = prefs.getInt("crawler.timeout", mConfig.timeout);
+        mConfig.tryCount = prefs.getInt("crawler.tryCount", mConfig.tryCount);
+
+        loadHistory();
         mURL.setThreshold(prefs.getInt("url.threshold", 4));
+
         mPath.setText(prefs.getString("out.path", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()));
         mBackup.setChecked(prefs.getBoolean("out.backup", false));
 
-        initHistory(prefs);
-
-        initFormat(prefs);
+        loadFormats(prefs);
     }
 
-    private void initHistory(SharedPreferences prefs) {
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.view:
+                fetchBook();
+                break;
+        }
+    }
+
+    private void loadViews() {
+        mURL = viewById(this, R.id.url);
+        findViewById(R.id.view).setOnClickListener(this);
+        mFormat = viewById(this, R.id.formats);
+        mPath = viewById(this, R.id.path);
+        findViewById(R.id.path_bar).setOnClickListener(v -> {
+            // TODO: 2017-3-2 select output directory
+        });
+        mPlaceholder = viewById(this, R.id.placeholder);
+        mOverview = viewById(this, R.id.overview);
+        mInfo = viewById(this, R.id.info);
+        mIntro = viewById(this, R.id.intro);
+        mCover = viewById(this, R.id.cover);
+        mCover.setOnClickListener(v -> {
+            if (mThumbnail == null) {
+                return;
+            }
+            val intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(mThumbnail), "image/*");
+            startActivity(intent);
+        });
+        mName = viewById(this, R.id.name);
+        mBackup = viewById(this, R.id.backup);
+        mProgress = viewById(this, R.id.progress);
+    }
+
+    private void loadHistory() {
         mHistories = new ArrayList<>();
         mAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, mHistories);
         mURL.setAdapter(mAdapter);
@@ -134,7 +163,7 @@ public class TaskActivity extends BaseActivity {
         });
 
         // load history from file
-        Workers.execute(() -> {
+        Worker.execute(() -> {
             val file = new File(getFilesDir(), HISTORY_NAME);
             if (file.exists()) {
                 return IOUtils.toLines(file, ENCODING, true);
@@ -144,9 +173,9 @@ public class TaskActivity extends BaseActivity {
         }, urls -> mAdapter.addAll(urls));
     }
 
-    private void initFormat(SharedPreferences prefs) {
-        Workers.execute(() -> {
-            JemUtils.init();
+    private void loadFormats(SharedPreferences prefs) {
+        Worker.execute(() -> {
+            Jem.init();
             return CollectionUtils.listOf(EpmManager.supportedMakers());
         }, names -> {
             val adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, names);
@@ -162,29 +191,12 @@ public class TaskActivity extends BaseActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Workers.execute(() -> {
-            if (mBook != null) {
-                cleanupBook();
-            }
-            if (!mHistories.isEmpty()) {
-                val file = new File(getFilesDir(), HISTORY_NAME);
-                try {
-                    IOUtils.writeLines(file, mHistories, "\n", ENCODING);
-                } catch (IOException e) {
-                    Log.e(TAG, "cannot save histories to file: " + file, e);
-                }
-            }
-        });
-    }
-
-    @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt("format", mFormat.getSelectedItemPosition());
-        outState.putInt("tip", mTip.getVisibility());
-        if (mHasCover) {
+        outState.putBoolean("placeholder", mPlaceholder.getVisibility() == View.VISIBLE);
+        if (mThumbnail != null) {
+            outState.putString("thumbnail", mThumbnail.getPath());
             outState.putParcelable("cover", ((BitmapDrawable) mCover.getDrawable()).getBitmap());
         }
     }
@@ -193,19 +205,35 @@ public class TaskActivity extends BaseActivity {
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         mFormat.post(() -> mFormat.setSelection(savedInstanceState.getInt("format")));
-        val visibility = savedInstanceState.getInt("tip", View.VISIBLE);
-        if (visibility == View.GONE) {
-            mTip.setVisibility(View.GONE);
+        val visibility = savedInstanceState.getBoolean("placeholder", true);
+        if (!visibility) {
             mOverview.setVisibility(View.VISIBLE);
+            mPlaceholder.setVisibility(View.GONE);
         } else {
-            mTip.setVisibility(View.VISIBLE);
             mOverview.setVisibility(View.GONE);
+            mPlaceholder.setVisibility(View.VISIBLE);
         }
         val bmp = savedInstanceState.getParcelable("cover");
         if (bmp != null) {
-            mHasCover = true;
             mCover.setImageBitmap((Bitmap) bmp);
+            mThumbnail = new File(savedInstanceState.getString("thumbnail"));
+        } else if (!visibility) {
+            mCover.setImageResource(R.mipmap.ic_book);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (!mHistories.isEmpty()) {
+            val file = new File(getFilesDir(), HISTORY_NAME);
+            try {
+                IOUtils.writeLines(file, mHistories, "\n", ENCODING);
+            } catch (IOException e) {
+                Log.e(TAG, "cannot save histories to file: " + file, e);
+            }
+        }
+        Worker.execute(this::cleanupBook);
     }
 
     @Override
@@ -226,9 +254,28 @@ public class TaskActivity extends BaseActivity {
         return true;
     }
 
+    private void cleanupBook() {
+        if (mBook != null && !mTask.isInitialized()) {
+            mBook.cleanup();
+        }
+        mBook = null;
+    }
+
+    private boolean isValidURL(String url) {
+        if (url.isEmpty()) {
+            return false;
+        }
+        try {
+            new URL(url);
+        } catch (MalformedURLException e) {
+            return false;
+        }
+        return true;
+    }
+
     private void onDone() {
         val url = mURL.getText().toString();
-        if (url.isEmpty()) {
+        if (!isValidURL(url)) {
             Toast.makeText(this, R.string.new_task_invalid_url, Toast.LENGTH_SHORT).show();
             mURL.requestFocus();
             return;
@@ -242,37 +289,39 @@ public class TaskActivity extends BaseActivity {
         val backup = mBackup.isChecked();
 
         val prefs = getSharedPreferences("general", MODE_PRIVATE);
-        val lastFormat = prefs.getBoolean("task.lastFormat", false);
-        val lastOutput = prefs.getBoolean("task.lastOutput", false);
+        val keepFormat = prefs.getBoolean("task.keepFormat", false);
+        val keepOutput = prefs.getBoolean("task.keepOutput", false);
         val editor = prefs.edit();
-        if (lastFormat) { // use last format
+        if (keepFormat) { // use last format
             editor.putString("out.format", format);
         }
-        if (lastOutput) { // use last output
+        if (keepOutput) { // use last output
             editor.putString("out.output", output);
         }
         editor.apply();
 
-        val data = new Intent();
-        data.putExtra(URL_KEY, url);
-        data.putExtra(FORMAT_KEY, format);
-        data.putExtra(OUTPUT_KEY, output);
-        data.putExtra(BACKUP_KEY, backup);
         if (mBook != null) {
-            data.putExtra(DATA_KEY, 100);
-            DataHub.put(100, Pair.create(mBook, mConfig));
+            mTask.init(mBook, new File(output), format, backup);
+        } else {
+            mTask.init(url, new File(output), format, backup);
         }
-        setResult(RESULT_OK, data);
+
+        setResult(RESULT_OK);
+        addHistory(url);
         finish();
     }
 
-    private void cleanupBook() {
-        mBook.cleanup();
+    private void addHistory(String url) {
+        if (!mHistories.contains(url)) {
+            mHistories.add(0, url);
+        }
     }
 
     private void fetchBook() {
         val url = mURL.getText().toString();
-        if (url.isEmpty()) {
+        if (!isValidURL(url)) {
+            Toast.makeText(this, R.string.new_task_invalid_url, Toast.LENGTH_SHORT).show();
+            mURL.requestFocus();
             return;
         }
 
@@ -280,32 +329,30 @@ public class TaskActivity extends BaseActivity {
 
         Observable.<CrawlerBook>create(sub -> {
             try {
-                val crawler = CrawlerManager.crawlerFor(url);
-                crawler.init(new CrawlerContext(url, mConfig));
-                crawler.fetchAttributes();
-                sub.onNext(crawler.getContext().getBook());
+                sub.onNext(CrawlerManager.fetchBook(url, mConfig));
+                sub.onCompleted();
             } catch (IOException | ParserException e) {
                 sub.onError(e);
             }
-        }).doOnNext(book -> {
-            if (mBook != null) {
-                cleanupBook();
-            }
-        }).subscribeOn(Schedulers.io())
+        }).doOnNext(book -> cleanupBook())
+                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnSubscribe(() -> Views.showAnimated(mProgress, true))
+                .doOnSubscribe(() -> Views.animateVisibility(mProgress, true))
                 .subscribe(book -> {
-                    Views.showAnimated(mProgress, false);
-                    if (!mHistories.contains(url)) {
-                        mHistories.add(0, url);
-                    }
+                    Views.animateVisibility(mProgress, false);
+                    addHistory(url);
                     viewBook(book);
-                }, error -> {
-                    Views.showAnimated(mProgress, false);
-                    error.printStackTrace();
+                }, err -> {
+                    Views.animateVisibility(mProgress, false);
+                    String msg;
+                    if (err instanceof MalformedURLException) {
+                        msg = getString(R.string.new_task_invalid_url);
+                    } else {
+                        msg = err.getLocalizedMessage();
+                    }
                     new AlertDialog.Builder(this)
                             .setTitle(R.string.new_task_fetch_error)
-                            .setMessage(error.toString())
+                            .setMessage(msg)
                             .setPositiveButton(R.string.ok, null)
                             .create()
                             .show();
@@ -314,28 +361,28 @@ public class TaskActivity extends BaseActivity {
 
     private void viewBook(CrawlerBook book) {
         mBook = book;
-        mTip.setVisibility(View.GONE);
-        mOverview.setVisibility(View.VISIBLE);
 
         mName.setText(Attributes.getTitle(book));
-        mAuthor.setText(Attributes.getAuthor(book));
-
-        mCover.setImageResource(R.mipmap.ic_book);
         val cover = Attributes.getCover(book);
+        mThumbnail = null;
         if (cover != null) {
-            Workers.execute(() -> {
-                val bmp = BitmapFactory.decodeStream(cover.openStream());
-                val height = getResources().getDimensionPixelSize(R.dimen.new_task_cover_height);
-                return ThumbnailUtils.extractThumbnail(bmp, (int) (height * 0.75), height, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-            }, bmp -> {
-                mHasCover = true;
-                mCover.setImageBitmap(bmp);
+            Worker.execute(() -> Jem.cache(cover, getExternalCacheDir()), cache -> {
+                mThumbnail = cache;
+                val width = getResources().getDimensionPixelSize(R.dimen.task_cover_width);
+                val height = getResources().getDimensionPixelSize(R.dimen.task_cover_height);
+                Glide.with(this)
+                        .load(cache)
+                        .crossFade()
+                        .override(width, height)
+                        .listener(new GlideListenerAdapter(d -> {
+                            Views.animateVisibility(mPlaceholder, false);
+                            Views.animateVisibility(mOverview, true);
+                            return false;
+                        }))
+                        .into(mCover);
             }, err -> {
-                mHasCover = false;
-                Log.d(TAG, "cannot load cover:" + cover);
+                Log.d(TAG, "cannot load cover:" + cover, err);
             });
-        } else {
-            mHasCover = false;
         }
 
         val items = new ArrayList<String>();
@@ -356,6 +403,6 @@ public class TaskActivity extends BaseActivity {
     }
 
     private static final Collection<String> sIgnoredNames = CollectionUtils.setOf(
-            Attributes.COVER, Attributes.INTRO, Attributes.TITLE, Attributes.AUTHOR
+            Attributes.COVER, Attributes.INTRO, Attributes.TITLE
     );
 }

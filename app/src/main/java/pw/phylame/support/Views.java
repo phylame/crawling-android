@@ -40,7 +40,7 @@ public final class Views {
         im.showSoftInput(view, 0);
     }
 
-    public static void showAnimated(@NonNull View view, boolean shown) {
+    public static void animateVisibility(@NonNull View view, boolean shown) {
         val animTime = view.getContext().getResources().getInteger(android.R.integer.config_shortAnimTime);
         view.setVisibility(shown ? View.VISIBLE : View.GONE);
         view.animate()

@@ -1,84 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
-    android:minHeight="?android:attr/listPreferredItemHeight"
-    android:orientation="horizontal"
-    android:paddingEnd="@dimen/book_item_padding"
-    android:paddingLeft="@dimen/book_item_padding"
-    android:paddingRight="@dimen/book_item_padding"
-    android:paddingStart="@dimen/book_item_padding">
-
-    <android.support.v7.widget.AppCompatImageView
-        android:id="@+id/cover"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        app:srcCompat="@mipmap/ic_book" />
+    app:cardBackgroundColor="@color/accentBackground">
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:padding="@dimen/sub_item_margin">
+        android:background="?attr/selectableItemBackground"
+        android:orientation="horizontal"
+        android:paddingEnd="@dimen/activity_horizontal_margin"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingStart="@dimen/activity_horizontal_margin">
 
-        <android.support.v7.widget.AppCompatTextView
-            android:id="@+id/name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="put task name here"
-            android:textColor="@color/textColorPrimary"
-            android:textSize="@dimen/book_title_size"
-            tools:ignore="HardcodedText" />
-
-        <ProgressBar
-            android:id="@+id/progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+        <android.support.v7.widget.AppCompatImageView
+            android:id="@+id/cover"
+            android:layout_width="@dimen/book_cover_width"
+            android:layout_height="@dimen/book_cover_height"
+            android:layout_gravity="center_vertical"
+            android:layout_marginBottom="@dimen/book_cover_margin"
+            android:layout_marginTop="@dimen/book_cover_margin"
+            android:scaleType="centerCrop"
+            app:srcCompat="@mipmap/ic_book" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="@dimen/sub_item_margin">
 
-            <android.support.v7.widget.AppCompatTextView
-                android:id="@+id/intro"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="marquee"
-                android:maxLines="1"
-                android:text="put intro text here"
-                android:textColor="@color/textColorSecondary"
-                android:textSize="@dimen/book_intro_size"
-                tools:ignore="HardcodedText" />
-
-            <android.support.v7.widget.AppCompatTextView
-                android:id="@+id/info"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="5dp"
-                android:layout_marginStart="5dp"
-                android:maxLines="1"
-                android:text="200/1000"
-                android:textColor="@color/textColorSecondary"
-                android:textSize="@dimen/book_intro_size"
-                tools:ignore="HardcodedText" />
-        </LinearLayout>
-    </LinearLayout>
+                android:orientation="horizontal">
 
-    <android.support.v7.widget.AppCompatImageButton
-        android:id="@+id/option"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:background="?attr/selectableItemBackground"
-        android:padding="@dimen/sub_item_margin"
-        android:src="@android:drawable/ic_media_play" />
-</LinearLayout>
+                <android.support.v7.widget.AppCompatTextView
+                    android:id="@+id/name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:maxLines="1"
+                    android:text="Great Expectations"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="@dimen/book_title_size"
+                    tools:ignore="HardcodedText" />
+
+                <android.support.v7.widget.AppCompatTextView
+                    android:id="@+id/author"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="@dimen/sub_item_margin"
+                    android:layout_marginStart="@dimen/sub_item_margin"
+                    android:ellipsize="marquee"
+                    android:maxLines="1"
+                    android:text="Charles John Huffam Dickens"
+                    android:textColor="@color/textColorSecondary"
+                    android:textSize="@dimen/book_author_size"
+                    tools:ignore="HardcodedText" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="20" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <android.support.v7.widget.AppCompatTextView
+                    android:id="@+id/intro"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="marquee"
+                    android:maxLines="1"
+                    android:text="put intro text here"
+                    android:textColor="@color/textColorSecondary"
+                    android:textSize="@dimen/book_intro_size"
+                    tools:ignore="HardcodedText" />
+
+                <android.support.v7.widget.AppCompatTextView
+                    android:id="@+id/info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="@dimen/sub_item_margin"
+                    android:layout_marginStart="@dimen/sub_item_margin"
+                    android:ellipsize="marquee"
+                    android:maxLines="1"
+                    android:text="100%"
+                    android:textColor="@color/textColorSecondary"
+                    android:textSize="@dimen/book_intro_size"
+                    tools:ignore="HardcodedText" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <android.support.v7.widget.AppCompatImageButton
+            android:id="@+id/option"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:background="?attr/selectableItemBackground"
+            android:padding="@dimen/sub_item_margin"
+            android:src="@android:drawable/ic_media_play"
+            android:tint="?attr/colorAccent" />
+    </LinearLayout>
+</android.support.v7.widget.CardView>

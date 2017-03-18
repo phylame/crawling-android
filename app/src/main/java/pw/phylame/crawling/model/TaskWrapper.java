@@ -2,169 +2,141 @@ package pw.phylame.crawling.model;
 
 import android.util.Log;
 
-import java.io.IOException;
+import java.io.File;
+import java.io.InterruptedIOException;
 import java.lang.ref.WeakReference;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import jem.Attributes;
 import jem.Chapter;
 import jem.crawler.CrawlerBook;
 import jem.crawler.CrawlerConfig;
-import jem.crawler.CrawlerListener;
-import jem.crawler.CrawlerListenerAdapter;
 import jem.crawler.CrawlerManager;
+import jem.crawler.TextFetchListener;
 import jem.epm.EpmManager;
-import jem.epm.util.ParserException;
-import jem.util.JemException;
 import lombok.val;
 import pw.phylame.commons.util.Validate;
-import pw.phylame.commons.value.Lazy;
-import pw.phylame.support.RxBus;
 
 class TaskWrapper extends ITask implements Runnable {
     private static final String TAG = TaskWrapper.class.getSimpleName();
-    private static final Lazy<ExecutorService> sExecutor = new Lazy<>(() -> Executors.newFixedThreadPool(48));
 
-    State mState;
     int mPosition;
-    Future<?> mFuture;
+    private State mState;
+    private int mLastProgress = -1;
     private volatile int mProgress = 0;
-    WeakReference<TaskBinder> mBinder;
-    private List<Future<?>> mFutures = new LinkedList<>();
+    private volatile Throwable mError;
+
+    Future<?> mFuture;
+    ExecutorService mExecutor; // reused executor
+    private final WeakReference<TaskBinder> mBinder;
+
+    private final TextFetchListener mListener = new TextFetchListener() {
+        @Override
+        public void textFetched(Chapter chapter, int total, int current) {
+            mProgress = (int) Math.round(current / (double) total * 100);
+            if (mProgress != mLastProgress) { // prevent posting same progress
+                mLastProgress = mProgress;
+                ITask.postMessage(ITask.EVENT_PROGRESS, mPosition, mProgress);
+            }
+        }
+    };
+
+    TaskWrapper(TaskBinder binder) {
+        mBinder = new WeakReference<>(binder);
+    }
 
     @Override
-    public State getState() {
+    public final State getState() {
         return mState;
     }
 
-    private void setState(State state) {
-        setState(state, null);
-    }
-
-    private void setState(State state, Object data) {
+    final void setState(State state) {
         mState = state;
-        RxBus.getDefault().post(TaskEvent
-                .obtain()
-                .type(TaskEvent.EVENT_LIFECYCLE)
-                .arg1(mPosition)
-                .obj(data));
+        ITask.postMessage(ITask.EVENT_STATE, mPosition, 0);
     }
 
     @Override
-    public int getTotal() {
-        val book = getBook();
-        return book != null ? book.getTotalChapters() : -1;
+    public final int getProgress() {
+        return getBook() != null ? mProgress : 0;
     }
 
     @Override
-    public int getProgress() {
-        return getBook() != null ? mProgress : -1;
+    public final Throwable getError() {
+        return mError;
     }
 
-    boolean cancel() {
-        if (mFuture.isDone() || mFuture.isCancelled()) {
-            return true;
-        }
-        for (val future : mFutures) {
-            if (!future.isDone() && !future.isCancelled()) {
-                future.cancel(true);
-            }
-        }
-        mFutures.clear();
-        return mFuture.cancel(true);
+    private void setError(Throwable error) {
+        mError = error;
+        setState(State.Failed);
     }
 
-    void start() {
-        System.out.println("TaskWrapper.start");
+    final boolean cancel() {
+        getBook().cancelFetch();
+        return mFuture.isDone() || mFuture.cancel(true);
+    }
+
+    final void start() {
         if (mState == State.Started) {
             throw new IllegalStateException("Task is already started: " + this);
         } else if (mState != State.Paused) {
             throw new IllegalStateException("Task is not paused: " + this);
         }
-        Validate.requireNotNull(mBinder, "mBinder is null");
-        mBinder.get().submitTask0(this);
-        setState(State.Started);
+        setState(State.Submitted);
+        mBinder.get().scheduleTask(this); // wrapper already submitted to task manager
     }
 
-    void pause() {
-        System.out.println("TaskWrapper.pause");
+    final void pause() {
         if (mState == State.Paused) {
             throw new IllegalStateException("Task is already paused: " + this);
-        } else if (mState != State.Started && mState != State.Submitted) {
+        } else if (mState != State.Started) {
             throw new IllegalStateException("Task is not started or submitted: " + this);
         }
         if (cancel()) {
             setState(ITask.State.Paused);
+        } else {
+            Log.e(TAG, "cannot cancel task: " + this);
         }
     }
 
-    private CrawlerListener mListener = new CrawlerListenerAdapter() {
-        @Override
-        public void textFetched(Chapter chapter, int total, int current) {
-            mProgress = current;
-            RxBus.getDefault().post(TaskEvent
-                    .obtain()
-                    .type(TaskEvent.EVENT_PROGRESS)
-                    .arg1(mPosition)
-                    .obj(chapter));
-        }
-    };
-
     @Override
-    public void run() {
+    public final void run() {
         CrawlerBook book = getBook();
-        if (book == null) {
+        if (book == null) { // no prepared book, task from URL
             try {
-                book = CrawlerManager.fetchBook(getURL(), new CrawlerConfig());
+                book = CrawlerManager.fetchBook(getUrl(), new CrawlerConfig());
                 setBook(book);
-                RxBus.getDefault().post(TaskEvent
-                        .obtain()
-                        .type(TaskEvent.EVENT_FETCHED)
-                        .arg1(mPosition));
-            } catch (IOException | ParserException e) {
-                e.printStackTrace();
-                setState(State.Failed, e);
-                return;
-            }
-        } else {
-            try {
-                book.getContext().getCrawler().get().fetchAttributes();
-            } catch (IOException e) {
-                e.printStackTrace();
-                setState(State.Failed, e);
+                ITask.postMessage(ITask.EVENT_FETCHED, mPosition, 0);
+            } catch (Exception e) {
+                setError(e);
                 return;
             }
         }
         setState(State.Started);
         book.getContext().setListener(mListener);
-        mFutures = book.initTexts(sExecutor.get(), mProgress);
+        book.fetchTexts(mExecutor, mProgress);
         try {
-            book.awaitFetched();
-        } catch (InterruptedException e) {
-            Log.d(TAG, "interrupt waiting for fetching");
-            return;
-        }
-        try {
-            EpmManager.writeBook(book, getOutput(), getFormat(), null);
+            val name = Attributes.getTitle(book) + '.' + getFormat();
+            File file = new File(getOutput(), name);
+            EpmManager.writeBook(book, file, getFormat(), null);
+            if (isBackup() && !getFormat().equals(EpmManager.PMAB)) {
+                file = new File(getOutput(), name + '.' + EpmManager.PMAB);
+                EpmManager.writeBook(book, file, EpmManager.PMAB, null);
+            }
             setState(State.Finished);
-        } catch (IOException | JemException e) {
-            setState(State.Failed, e);
+        } catch (CancellationException | InterruptedIOException e) {
+            Log.d(TAG, "cancelled or interrupted", e);
+//            book.cancelFetch();
+        } catch (Exception e) {
+            book.cancelFetch();
+            setError(e);
         }
     }
 
-    private void onCancelled() {
-        cleanup();
-        mState = ITask.State.Started;
-        RxBus.getDefault().post(TaskEvent.obtain()
-                .type(TaskEvent.EVENT_CANCELLED)
-                .arg1(mPosition)
-                .obj(this));
-    }
-
-    public void cleanup() {
+    @Override
+    public final void cleanup() {
+        Validate.check(mFuture.isDone(), "task is not done");
         getBook().cleanup();
     }
 }

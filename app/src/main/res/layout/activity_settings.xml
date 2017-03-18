@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
     tools:context=".activity.SettingsActivity">
 
     <android.support.design.widget.AppBarLayout
@@ -12,20 +10,7 @@
         android:layout_height="wrap_content"
         android:theme="@style/AppTheme.AppBarOverlay">
 
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/action_bar_height"
-            app:navigationIcon="@mipmap/ic_back">
-
-            <android.support.v7.widget.AppCompatTextView
-                style="@style/titleTextAppearance"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="@string/settings" />
-        </android.support.v7.widget.Toolbar>
-
+        <include layout="@layout/centered_toolbar" />
     </android.support.design.widget.AppBarLayout>
 
     <include layout="@layout/content_settings" />

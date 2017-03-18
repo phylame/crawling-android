@@ -2,14 +2,11 @@ package pw.phylame.crawling.model;
 
 import android.os.Binder;
 
-import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
 import jem.epm.EpmManager;
@@ -18,108 +15,101 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import pw.phylame.commons.function.Functionals;
 import pw.phylame.commons.util.Validate;
-import pw.phylame.support.RxBus;
 
 @RequiredArgsConstructor
 public class TaskBinder extends Binder implements ITaskManager {
     private final ExecutorService mExecutor;
     private final ReentrantLock mLock = new ReentrantLock();
-    private final LinkedList<TaskWrapper> mTasks = new LinkedList<>();
+    private final List<TaskWrapper> mTasks = new LinkedList<>();
 
-    private void submitDirectly(TaskWrapper wrapper) {
+    public final void cleanup() {
+    }
+
+    private void appendTask0(TaskWrapper wrapper) {
         mLock.lock();
         val tasks = this.mTasks;
         try {
             tasks.add(wrapper);
             wrapper.mPosition = tasks.size() - 1;
-            wrapper.mState = ITask.State.Submitted;
-            wrapper.mBinder = new WeakReference<>(this);
-            RxBus.getDefault().post(TaskEvent.obtain()
-                    .type(TaskEvent.EVENT_SUBMIT)
-                    .arg1(wrapper.mPosition)
-                    .obj(wrapper));
+            ITask.postMessage(ITask.EVENT_SUBMIT, wrapper.mPosition, wrapper);
+            wrapper.setState(ITask.State.Submitted);
         } finally {
             mLock.unlock();
         }
     }
 
-    private void removeDirectly(TaskWrapper wrapper) {
+    private void removeTask0(TaskWrapper wrapper) {
         mLock.lock();
         val tasks = mTasks;
         try {
             val position = wrapper.mPosition;
-            tasks.remove(position);
+            if (tasks.remove(position) != wrapper) {
+                throw new IllegalStateException("Bad task position: " + wrapper);
+            }
             for (int i = position, end = tasks.size(); i < end; ++i) {
                 --tasks.get(i).mPosition; // decrease position of following tasks
             }
-            RxBus.getDefault().post(TaskEvent.obtain()
-                    .type(TaskEvent.EVENT_DELETE)
-                    .arg1(position)
-                    .obj(wrapper));
+            ITask.postMessage(ITask.EVENT_DELETE, position, wrapper);
         } finally {
             mLock.unlock();
         }
     }
 
-    private void checkTask(ITask task) {
-        Validate.require(task instanceof TaskWrapper, "task must be created from newTask");
+    private TaskWrapper checkType(ITask task) {
+        if (task instanceof TaskWrapper) {
+            return (TaskWrapper) task;
+        }
+        throw new IllegalArgumentException("Task must be created from newTask()");
+    }
+
+    private void ensureSubmitted(TaskWrapper wrapper) {
+        Validate.require(mTasks.contains(wrapper), "No such task: %s", wrapper);
     }
 
     @Override
     public ITask newTask() {
-        return new TaskWrapper();
+        return new TaskWrapper(this);
     }
 
     @Override
-    public List<? extends ITask> tasks() {
+    public List<? extends ITask> getTasks() {
         return Collections.unmodifiableList(mTasks);
     }
 
     @Override
     public void submitTask(@NonNull ITask task) {
-        checkTask(task);
-        val wrapper = (TaskWrapper) task;
-        Validate.require(wrapper.getBook() != null || wrapper.getURL() != null, "No book or URL specified");
+        val wrapper = checkType(task);
+        Validate.require(wrapper.getBook() != null || wrapper.getUrl() != null, "No book or URL specified");
         Validate.requireNotNull(wrapper.getOutput(), "No output specified");
         Validate.requireNotEmpty(wrapper.getFormat(), "Format is null or empty");
         Validate.require(EpmManager.hasMaker(wrapper.getFormat()), "Unsupported format: %s", wrapper.getFormat());
-        Validate.require(!mTasks.contains(wrapper), "Task submitted: %s", task);
         mLock.lock();
         try {
-            submitDirectly(wrapper);
-            submitTask0(wrapper);
+            Validate.require(!mTasks.contains(wrapper), "Task is already submitted: %s", wrapper);
+            appendTask0(wrapper);
+            scheduleTask(wrapper);
         } finally {
             mLock.unlock();
         }
     }
 
-    void submitTask0(TaskWrapper wrapper) {
+    final void scheduleTask(TaskWrapper wrapper) {
         wrapper.mFuture = mExecutor.submit(wrapper);
     }
 
     @Override
     public void deleteTask(@NonNull ITask task) {
-        checkTask(task);
-        val wrapper = (TaskWrapper) task;
-        Validate.require(mTasks.contains(wrapper), "No such task: %s", task);
+        val wrapper = checkType(task);
         mLock.lock();
         try {
-            deleteTask0(wrapper);
+            ensureSubmitted(wrapper);
+            if (!wrapper.cancel()) {
+                throw new IllegalStateException("Cannot cancel task: " + wrapper);
+            }
+            removeTask0(wrapper);
         } finally {
             mLock.unlock();
         }
-    }
-
-    private void deleteTask0(TaskWrapper wrapper) {
-        val future = wrapper.mFuture;
-        if (future.isDone()) {
-            wrapper.mState = ITask.State.Deleted;
-        } else if (future.isCancelled() || wrapper.cancel()) {
-            wrapper.mState = ITask.State.Cancelled;
-        } else {
-            throw new IllegalStateException("cannot remove task: " + wrapper);
-        }
-        removeDirectly(wrapper);
     }
 
     @Override
@@ -127,7 +117,7 @@ public class TaskBinder extends Binder implements ITaskManager {
         mLock.lock();
         try {
             for (val task : tasks.toArray(new ITask[tasks.size()])) {
-                deleteTask0((TaskWrapper) task);
+                deleteTask(task);
             }
         } finally {
             mLock.unlock();
@@ -136,15 +126,18 @@ public class TaskBinder extends Binder implements ITaskManager {
 
     @Override
     public void startTask(@NonNull ITask task, boolean start) {
-        checkTask(task);
-        val wrapper = (TaskWrapper) task;
-        Validate.require(mTasks.contains(wrapper), "No such task: %s", task);
+        val wrapper = checkType(task);
         mLock.lock();
         try {
+            ensureSubmitted(wrapper);
             if (start) {
-                wrapper.start();
+                if (wrapper.getState() == ITask.State.Paused) {
+                    wrapper.start();
+                }
             } else {
-                wrapper.pause();
+                if (wrapper.getState() == ITask.State.Started) {
+                    wrapper.pause();
+                }
             }
         } finally {
             mLock.unlock();

@@ -5,9 +5,7 @@ import android.support.v4.app.NavUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import lombok.val;
 import pw.phylame.crawling.R;
-import pw.phylame.support.Views;
 
 public class SettingsActivity extends BaseActivity {
 
@@ -15,14 +13,9 @@ public class SettingsActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
-        initActionBar();
-    }
-
-    private void initActionBar() {
-        setSupportActionBar(Views.viewById(this, R.id.toolbar));
-        val actionBar = getSupportActionBar();
-        assert actionBar != null;
-        actionBar.setDisplayShowTitleEnabled(false);
+        setupCenteredToolbar(R.id.toolbar, true);
+        setupColoredStatus();
+        setTitle(R.string.settings);
     }
 
     @Override

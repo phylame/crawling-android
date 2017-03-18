@@ -2,17 +2,13 @@ package pw.phylame.support;
 
 import android.app.Activity;
 import android.os.Build;
-import android.support.annotation.ColorInt;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
 import lombok.val;
 import pw.phylame.commons.util.Reflections;
-
-import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
 public final class StatusBarCompat {
     private static final String TAG = StatusBarCompat.class.getSimpleName();
@@ -20,19 +16,6 @@ public final class StatusBarCompat {
     public static int getStatusHeight(Activity activity) {
         val resources = activity.getResources();
         return resources.getDimensionPixelSize(resources.getIdentifier("status_bar_height", "dimen", "android"));
-    }
-
-    public static boolean setStatusColor(Activity activity, @ColorInt int color) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            activity.getWindow().setStatusBarColor(color);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            val window = activity.getWindow();
-            window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            ((ViewGroup) window.getDecorView()).addView(Views.coloredView(activity, color, MATCH_PARENT, getStatusHeight(activity)));
-        } else {
-            return false;
-        }
-        return true;
     }
 
     public static boolean setStatusMode(Window window, boolean darker) {

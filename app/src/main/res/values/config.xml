@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <integer name="default_task_count">3</integer>
+    <integer name="default_text_count">4</integer>
     <integer name="exit_delay_millis">2000</integer>
 </resources>

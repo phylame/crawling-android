@@ -17,7 +17,7 @@ public interface ITaskManager {
      *
      * @return the iterator
      */
-    List<? extends ITask> tasks();
+    List<? extends ITask> getTasks();
 
     /**
      * Submits a task for processing.

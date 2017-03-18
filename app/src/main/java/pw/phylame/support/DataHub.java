@@ -1,4 +1,4 @@
-package pw.phylame.crawling.model;
+package pw.phylame.support;
 
 import android.util.SparseArray;
 

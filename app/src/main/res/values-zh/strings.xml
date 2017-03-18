@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Crawler</string>
-    <string name="activity_new_task_title">新建任务</string>
+    <string name="activity_new_task_title">新建</string>
     <string name="create">新建</string>
     <string name="cancel">取消</string>
     <string name="delete">删除</string>
@@ -31,4 +31,13 @@
     <string name="start">开始</string>
     <string name="new_task_invalid_url">链接地址无效</string>
     <string name="new_task_invalid_output">无效保存文件夹</string>
+    <string name="loading">加载中…</string>
+    <string name="exit_cancel_tip">取消未完成的任务？</string>
+    <plurals name="selection_title">
+        <item quantity="other">%1$d项</item>
+    </plurals>
+    <plurals name="delete_task_tip">
+        <item quantity="other">取消并删除 %1$d 个任务?</item>
+    </plurals>
+    <string name="details">详情</string>
 </resources>

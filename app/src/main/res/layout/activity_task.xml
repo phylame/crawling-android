@@ -5,7 +5,6 @@
     android:id="@+id/activity_task"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
     tools:context=".activity.TaskActivity">
 
     <android.support.design.widget.AppBarLayout
@@ -33,30 +32,32 @@
                 android:paddingLeft="@dimen/activity_horizontal_margin"
                 android:paddingRight="@dimen/activity_horizontal_margin"
                 android:paddingStart="@dimen/activity_horizontal_margin"
+                android:paddingTop="@dimen/activity_vertical_margin"
                 android:text="@string/new_task_details"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="19sp" />
+                android:textColor="@color/colorAccent"
+                android:textSize="16sp" />
 
             <android.support.v7.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/accentBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:divider="?android:attr/listDivider"
                     android:orientation="vertical"
-                    android:paddingEnd="@dimen/activity_horizontal_margin"
-                    android:paddingLeft="@dimen/activity_horizontal_margin"
-                    android:paddingRight="@dimen/activity_horizontal_margin"
-                    android:paddingStart="@dimen/activity_horizontal_margin"
                     android:showDividers="middle">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:minHeight="?attr/listPreferredItemHeightSmall"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingEnd="@dimen/activity_horizontal_margin"
+                        android:paddingLeft="@dimen/activity_horizontal_margin"
+                        android:paddingRight="@dimen/activity_horizontal_margin"
+                        android:paddingStart="@dimen/activity_horizontal_margin">
 
                         <android.support.v7.widget.AppCompatImageView
                             android:layout_width="@dimen/item_icon_size"
@@ -68,9 +69,11 @@
                         <android.support.v7.widget.AppCompatAutoCompleteTextView
                             android:id="@+id/url"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_gravity="center_vertical"
+                            android:layout_marginEnd="@dimen/sub_item_margin"
                             android:layout_marginLeft="@dimen/sub_item_margin"
+                            android:layout_marginRight="@dimen/sub_item_margin"
                             android:layout_marginStart="@dimen/sub_item_margin"
                             android:layout_weight="1"
                             android:background="@android:color/transparent"
@@ -84,12 +87,12 @@
 
                         <android.support.v7.widget.AppCompatImageView
                             android:id="@+id/view"
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
+                            android:layout_width="@dimen/item_option_size"
+                            android:layout_height="@dimen/item_option_size"
                             android:layout_gravity="center_vertical"
-                            android:layout_marginLeft="@dimen/sub_item_margin"
-                            android:layout_marginStart="@dimen/sub_item_margin"
-                            android:tint="@color/colorForeground"
+                            android:layout_marginEnd="4dp"
+                            android:layout_marginRight="4dp"
+                            android:tint="?attr/colorControlNormal"
                             app:srcCompat="@mipmap/ic_visible" />
                     </LinearLayout>
 
@@ -97,7 +100,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:minHeight="?attr/listPreferredItemHeightSmall"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingEnd="@dimen/activity_horizontal_margin"
+                        android:paddingLeft="@dimen/activity_horizontal_margin"
+                        android:paddingRight="@dimen/activity_horizontal_margin"
+                        android:paddingStart="@dimen/activity_horizontal_margin">
 
                         <android.support.v7.widget.AppCompatImageView
                             android:layout_width="@dimen/item_icon_size"
@@ -109,20 +116,27 @@
                         <android.support.v7.widget.AppCompatSpinner
                             android:id="@+id/formats"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_gravity="center_vertical"
+                            android:layout_marginEnd="4dp"
                             android:layout_marginLeft="@dimen/sub_item_margin"
+                            android:layout_marginRight="4dp"
                             android:layout_marginStart="@dimen/sub_item_margin"
-                            android:layout_weight="1" />
+                            android:layout_weight="1"
+                            android:popupBackground="@color/popupBackground" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/path_bar"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/forward_background"
+                        android:background="?attr/selectableItemBackground"
                         android:minHeight="?attr/listPreferredItemHeightSmall"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingEnd="@dimen/activity_horizontal_margin"
+                        android:paddingLeft="@dimen/activity_horizontal_margin"
+                        android:paddingRight="@dimen/activity_horizontal_margin"
+                        android:paddingStart="@dimen/activity_horizontal_margin">
 
                         <android.support.v7.widget.AppCompatImageView
                             android:layout_width="@dimen/item_icon_size"
@@ -141,16 +155,29 @@
                             android:layout_weight="1"
                             android:ellipsize="marquee"
                             android:maxLines="1"
-                            android:text="/sdcard/Download/tmp/books/crawler"
+                            android:text="/sdcard/Download/tmp/books"
                             android:textAppearance="@style/itemTextAppearance"
                             tools:ignore="HardcodedText" />
+
+                        <android.support.v7.widget.AppCompatImageView
+                            android:layout_width="@dimen/item_option_size"
+                            android:layout_height="@dimen/item_option_size"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginEnd="4dp"
+                            android:layout_marginRight="4dp"
+                            android:tint="?attr/colorControlNormal"
+                            app:srcCompat="@mipmap/ic_forward" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:minHeight="?attr/listPreferredItemHeightSmall"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingEnd="@dimen/activity_horizontal_margin"
+                        android:paddingLeft="@dimen/activity_horizontal_margin"
+                        android:paddingRight="@dimen/activity_horizontal_margin"
+                        android:paddingStart="@dimen/activity_horizontal_margin">
 
                         <android.support.v7.widget.AppCompatImageView
                             android:layout_width="@dimen/item_icon_size"
@@ -167,7 +194,7 @@
                             android:layout_marginLeft="@dimen/sub_item_margin"
                             android:layout_marginStart="@dimen/sub_item_margin"
                             android:layout_weight="1"
-                            android:background="@android:color/transparent"
+                            android:background="@null"
                             android:button="@null"
                             android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
                             android:drawableRight="?android:attr/listChoiceIndicatorMultiple"
@@ -185,13 +212,15 @@
                 android:paddingLeft="@dimen/activity_horizontal_margin"
                 android:paddingRight="@dimen/activity_horizontal_margin"
                 android:paddingStart="@dimen/activity_horizontal_margin"
+                android:paddingTop="@dimen/activity_vertical_margin"
                 android:text="@string/new_task_overview"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="19sp" />
+                android:textColor="@color/colorAccent"
+                android:textSize="16sp" />
 
             <android.support.v7.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/accentBackground">
 
                 <FrameLayout
                     android:layout_width="match_parent"
@@ -203,6 +232,7 @@
                         android:layout_height="wrap_content"
                         android:divider="?android:attr/listDivider"
                         android:orientation="vertical"
+                        android:paddingBottom="@dimen/activity_vertical_margin"
                         android:paddingEnd="@dimen/activity_horizontal_margin"
                         android:paddingLeft="@dimen/activity_horizontal_margin"
                         android:paddingRight="@dimen/activity_horizontal_margin"
@@ -210,31 +240,15 @@
                         android:showDividers="middle"
                         android:visibility="gone">
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
+                        <android.support.v7.widget.AppCompatTextView
+                            android:id="@+id/name"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <android.support.v7.widget.AppCompatTextView
-                                android:id="@+id/name"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="bottom"
-                                android:text="Title"
-                                android:textIsSelectable="true"
-                                android:textSize="@dimen/new_task_title_font_size" />
-
-                            <android.support.v7.widget.AppCompatTextView
-                                android:id="@+id/author"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="bottom"
-                                android:layout_marginLeft="@dimen/sub_item_margin"
-                                android:layout_marginStart="@dimen/sub_item_margin"
-                                android:text="Author"
-                                android:textIsSelectable="true"
-                                android:textSize="@dimen/new_task_author_font_size" />
-                        </LinearLayout>
+                            android:layout_gravity="bottom"
+                            android:textColor="@color/textColorPrimary"
+                            android:textIsSelectable="true"
+                            android:textSize="@dimen/task_name_size"
+                            android:textStyle="normal|bold" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -245,8 +259,8 @@
 
                             <android.support.v7.widget.AppCompatImageView
                                 android:id="@+id/cover"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
+                                android:layout_width="@dimen/task_cover_width"
+                                android:layout_height="@dimen/task_cover_height"
                                 android:layout_gravity="center_vertical" />
 
                             <android.support.v7.widget.AppCompatTextView
@@ -257,7 +271,7 @@
                                 android:layout_marginStart="@dimen/sub_item_margin"
                                 android:layout_weight="1"
                                 android:textIsSelectable="true"
-                                android:textSize="@dimen/new_task_info_font_size" />
+                                android:textSize="@dimen/task_info_size" />
                         </LinearLayout>
 
                         <android.support.v7.widget.AppCompatTextView
@@ -265,11 +279,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="match_parent"
                             android:textIsSelectable="true"
-                            android:textSize="@dimen/new_task_info_font_size" />
+                            android:textSize="@dimen/task_intro_size" />
                     </LinearLayout>
 
                     <android.support.v7.widget.AppCompatTextView
-                        android:id="@+id/tip"
+                        android:id="@+id/placeholder"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"

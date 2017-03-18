@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#2962FF</color>
-    <color name="colorPrimaryDark">#2962FF</color>
+    <color name="colorPrimaryDark">@color/fallbackStatusBarColor</color>
     <color name="colorAccent">#16A8C2</color>
     <color name="colorBackground">#ECEDEF</color>
     <color name="colorForeground">#303030</color>
     <color name="textColorPrimary">#212121</color>
     <color name="textColorSecondary">#717676</color>
     <color name="popupBackground">#FFF</color>
+    <color name="colorControlNormal">#717676</color>
+    <color name="accentBackground">#FEFEFE</color>
+    <color name="toolbarTitleColor">#FFF</color>
+    <color name="fallbackStatusBarColor">#B0B0B0</color>
 </resources>

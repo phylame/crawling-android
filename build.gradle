@@ -3,17 +3,19 @@
 buildscript {
     ext {
         jem_version = '3.2.0'
+        glide_version = '3.7.0'
         rxjava_version = '1.2.1'
         lombok_version = '1.16.14'
-        support_version = '25.1.1'
+        support_version = '25.2.0'
     }
 
     repositories {
         mavenLocal()
         jcenter()
     }
+
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.0'
         classpath 'me.tatarka:gradle-retrolambda:3.5.0'
         classpath 'io.realm:realm-gradle-plugin:3.0.0'
     }

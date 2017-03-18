@@ -16,6 +16,7 @@
     <string name="reset">Reset</string>
     <string name="history">History</string>
     <string name="select_all">Select All</string>
+    <string name="loading">Loading…</string>
 
     <string name="permission_denied">Not granted required permissions</string>
 
@@ -33,7 +34,7 @@
         <item quantity="other">Delete %1$d tasks?\nAll undone tasks will be cancelled.</item>
     </plurals>
 
-    <string name="activity_new_task_title">New Task</string>
+    <string name="activity_new_task_title">New</string>
 
     <string name="new_task_details">Details</string>
     <string name="new_task_url_hint">URL of book details</string>
@@ -45,4 +46,6 @@
     <string name="new_task_overview_tip">No book fetched</string>
     <string name="new_task_invalid_url">URL is invalid</string>
     <string name="new_task_invalid_output">Output is invalid</string>
+    <string name="exit_cancel_tip">Some tasks are not completed, cancel them?</string>
+    <string name="details">Details</string>
 </resources>

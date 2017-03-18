@@ -20,11 +20,11 @@ public final class RxBus {
     private static final Lazy<RxBus> sDefault = new Lazy<>(RxBus::new);
 
     private final Subject<Object, Object> mBus;
-    private final Map<Class<?>, Object> mStickyEventMap;
+    private final Map<Class<?>, Object> mStickyEvents;
 
     private RxBus() {
         mBus = new SerializedSubject<>(PublishSubject.create());
-        mStickyEventMap = new ConcurrentHashMap<>();
+        mStickyEvents = new ConcurrentHashMap<>();
     }
 
     /**
@@ -51,9 +51,7 @@ public final class RxBus {
      * @param event the event object
      */
     public final void post(@NonNull Object event) {
-        if (hasObservers()) {
-            mBus.onNext(event);
-        }
+        mBus.onNext(event);
     }
 
     /**
@@ -62,8 +60,8 @@ public final class RxBus {
      * @param event the event object
      */
     public final void postSticky(@NonNull Object event) {
-        synchronized (mStickyEventMap) {
-            mStickyEventMap.put(event.getClass(), event);
+        synchronized (mStickyEvents) {
+            mStickyEvents.put(event.getClass(), event);
             post(event);
         }
     }
@@ -123,9 +121,9 @@ public final class RxBus {
      * @return the observable
      */
     public final <T> Observable<T> toObservableSticky(final Class<T> eventType) {
-        synchronized (mStickyEventMap) {
+        synchronized (mStickyEvents) {
             val observable = mBus.ofType(eventType);
-            val event = mStickyEventMap.get(eventType);
+            val event = mStickyEvents.get(eventType);
             if (event != null) {
                 return observable.mergeWith(Observable.create(subscriber -> {
                     subscriber.onNext(eventType.cast(event));
@@ -144,8 +142,8 @@ public final class RxBus {
      * @return the event object, or {@literal null} if not found
      */
     public final <T> T getStickyEvent(Class<T> eventType) {
-        synchronized (mStickyEventMap) {
-            return eventType.cast(mStickyEventMap.get(eventType));
+        synchronized (mStickyEvents) {
+            return eventType.cast(mStickyEvents.get(eventType));
         }
     }
 
@@ -157,8 +155,8 @@ public final class RxBus {
      * @return current event object, of {@literal null} if not found
      */
     public final <T> T removeStickyEvent(Class<T> eventType) {
-        synchronized (mStickyEventMap) {
-            return eventType.cast(mStickyEventMap.remove(eventType));
+        synchronized (mStickyEvents) {
+            return eventType.cast(mStickyEvents.remove(eventType));
         }
     }
 
@@ -166,8 +164,8 @@ public final class RxBus {
      * Removes all sticky events.
      */
     public final void removeAllStickyEvents() {
-        synchronized (mStickyEventMap) {
-            mStickyEventMap.clear();
+        synchronized (mStickyEvents) {
+            mStickyEvents.clear();
         }
     }
 }

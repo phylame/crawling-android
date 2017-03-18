@@ -26,11 +26,15 @@ android {
 
     packagingOptions {
         merge 'META-INF/jem/parsers.prop'
+        merge 'META-INF/jem/crawlers.prop'
     }
 }
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
+
+    provided "org.projectlombok:lombok:$lombok_version"
+
     compile("pw.phylame.jem:jem-formats:$jem_version") {
         exclude group: 'org.json', module: 'json'
         exclude group: 'xpp3', module: 'xpp3'
@@ -39,13 +43,18 @@ dependencies {
         exclude group: 'org.json', module: 'json'
         exclude group: 'xpp3', module: 'xpp3'
     }
+
     compile "io.reactivex:rxandroid:$rxjava_version"
-    provided "org.projectlombok:lombok:$lombok_version"
+    compile 'com.tbruyelle.rxpermissions:rxpermissions:0.9.1@aar'
+
+    compile 'com.github.bumptech.glide:glide:3.7.0'
+    compile 'com.jaeger.statusbaruitl:library:1.3.6'
+    compile 'jp.wasabeef:glide-transformations:2.0.1'
+
     compile "com.android.support:design:$support_version"
-    compile "com.android.support:support-v4:$support_version"
+    compile "com.android.support:palette-v7:$support_version"
     compile "com.android.support:cardview-v7:$support_version"
     compile "com.android.support:appcompat-v7:$support_version"
     compile "com.android.support:recyclerview-v7:$support_version"
     compile "com.android.support:support-vector-drawable:$support_version"
-    compile 'com.tbruyelle.rxpermissions:rxpermissions:0.9.1@aar'
 }

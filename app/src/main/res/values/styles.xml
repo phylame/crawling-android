@@ -9,11 +9,16 @@
         <item name="android:colorForeground">@color/colorForeground</item>
         <item name="android:textColorPrimary">@color/textColorPrimary</item>
         <item name="android:textColorSecondary">@color/textColorSecondary</item>
+        <item name="colorControlNormal">@color/colorControlNormal</item>
+
+        <!-- ActionBar -->
+        <item name="actionBarSize">@dimen/action_bar_height</item>
+        <item name="toolbarStyle">@style/AppTheme.Toolbar</item>
+        <item name="actionBarPopupTheme">@style/AppTheme.PopupOverlay</item>
 
         <!-- ActionMode -->
         <item name="windowActionModeOverlay">true</item>
         <item name="actionModeStyle">@style/AppTheme.ActionMode</item>
-        <item name="actionBarPopupTheme">@style/AppTheme.PopupOverlay</item>
         <item name="android:actionModeCloseDrawable">@mipmap/ic_back</item>
 
         <!-- Spinner -->
@@ -25,7 +30,7 @@
 
     <!-- AppBar -->
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
-        <item name="toolbarStyle">@style/AppTheme.Toolbar</item>
+
     </style>
 
     <!-- Toolbar -->
@@ -33,6 +38,8 @@
         <item name="titleTextAppearance">@style/titleTextAppearance</item>
         <item name="popupTheme">@style/AppTheme.PopupOverlay</item>
         <item name="contentInsetStartWithNavigation">0dp</item>
+        <item name="android:background">?attr/colorPrimary</item>
+        <item name="contentInsetStart">@dimen/activity_horizontal_margin</item>
     </style>
 
     <!-- PopupMenu -->
@@ -57,6 +64,7 @@
     <!-- Toolbar Title-->
     <style name="titleTextAppearance" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
         <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@color/toolbarTitleColor</item>
     </style>
 
     <!-- Tab Title -->
@@ -73,7 +81,7 @@
     <!-- Spinner -->
     <style name="SpinnerTheme" parent="Widget.AppCompat.Spinner">
         <item name="android:background">@drawable/spinner_background</item>
-        <item name="android:popupBackground">@color/popupBackground</item>
+        <!--<item name="android:popupBackground">@color/popupBackground</item>-->
     </style>
 
     <style name="SpinnerItem" parent="Widget.AppCompat.TextView.SpinnerItem">
